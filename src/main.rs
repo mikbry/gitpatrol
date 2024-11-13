@@ -232,8 +232,8 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
                    name.ends_with(".jsx") || name.ends_with(".tsx") {
                     files_scanned += 1;
                     if let Some(download_url) = item["download_url"].as_str() {
-                    let response = client.get(download_url).send().await?;
-                    let content = response.text().await?;
+                        let response = client.get(download_url).send().await?;
+                        let content = response.text().await?;
                     
                     // Analyze the file content using existing logic
                     for (line_num, line) in content.lines().enumerate() {
@@ -273,6 +273,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
                 }
             }
         }
+    }
 
     println!("  {} {}", "📄 package.json:".bright_blue(), 
              if has_package_json { "✓ Yes".green() } else { "✗ No".red() });

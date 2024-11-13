@@ -35,7 +35,9 @@ struct Cli {
 }
 
 fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
-    println!("\n{} {}", "Analyzing zip file:".bright_blue().bold(), zip_path.display().to_string().yellow());
+    println!("\n{}", "━".repeat(80).bright_blue());
+    println!("{} {}", "📦 Analyzing zip file:".bright_blue().bold(), zip_path.display().to_string().yellow());
+    println!("{}", "━".repeat(80).bright_blue());
     
     let file = File::open(zip_path)
         .context("Failed to open zip file")?;
@@ -56,8 +58,8 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
             .unwrap_or(false)
     });
 
-    println!("{} {}", "Repository contains package.json:".bright_blue(), if has_package_json { "✓ Yes".green() } else { "✗ No".red() });
-    println!("{}", "Analyzing files for suspicious content...".bright_blue());
+    println!("  {} {}", "📄 package.json:".bright_blue(), if has_package_json { "✓ Yes".green() } else { "✗ No".red() });
+    println!("\n  {}", "🔍 Analyzing files for suspicious content...".bright_blue());
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
@@ -97,18 +99,18 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
             // Only alert if there are multiple suspicious patterns or specific combinations
             if (!suspicious_patterns.is_empty() && suspicious_patterns.len() >= 2) || 
                (is_minified && !suspicious_patterns.is_empty()) {
-                println!("\n{}", "⚠️  WARNING: Suspicious code detected!".yellow().bold());
-                println!("{} {}", "File:".bright_blue(), name.yellow());
-                println!("{} {}", "Line number:".bright_blue(), (line_num + 1).to_string().yellow());
+                println!("\n    {}", "⚠️  WARNING: Suspicious code detected!".yellow().bold());
+                println!("    {} {}", "📄 File:".bright_blue(), name.yellow());
+                println!("    {} {}", "↳ Line:".bright_blue(), (line_num + 1).to_string().yellow());
                 
                 if is_minified {
-                    println!("{} {} {}", "- Minified/obfuscated code (length:".red(), line.len().to_string().yellow(), "chars)".red());
+                    println!("      {} {} {}", "⚡ Minified/obfuscated code (length:".red(), line.len().to_string().yellow(), "chars)".red());
                 }
                 
                 if !suspicious_patterns.is_empty() {
-                    println!("{}", "- Suspicious patterns found:".red());
+                    println!("      {} {}", "⚠️", "Suspicious patterns found:".red());
                     for pattern in suspicious_patterns {
-                        println!("  {} {}", "•".yellow(), pattern.bright_red());
+                        println!("        {} {}", "↳".yellow(), pattern.bright_red());
                     }
                 }
                 
@@ -131,14 +133,16 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
         }
     }
     
-    // Show final status
-    println!("\n{} {}", "Final Status:".bright_blue().bold(), 
+    // Show final status with separator
+    println!("\n{}", "┄".repeat(80).bright_blue());
+    println!("  {} {}", "📊 Analysis Result:".bright_blue().bold(), 
         if found_suspicious {
             "🔴 Suspicious patterns detected".red().bold()
         } else {
             "🟢 No suspicious patterns found".green().bold()
         }
     );
+    println!("{}", "━".repeat(80).bright_blue());
     
     Ok(found_suspicious)
 }

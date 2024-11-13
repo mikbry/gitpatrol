@@ -2,6 +2,8 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use colored::*;
 use glob::glob;
+
+const VERSION: &str = "1.0.0";
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -46,6 +48,10 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<()> {
 }
 
 fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
+    let mut found_suspicious = false;
+    
+    println!("\n{}", "🔍 Ziiircom : Git repository malware scanner".bright_cyan().bold());
+    println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
     
     let has_package_json = (0..archive.len()).any(|i| {
         archive.by_index(i)
@@ -123,9 +129,20 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
                 }
                 
                 println!("{}", "─".repeat(50).dimmed());
+                found_suspicious = true;
             }
         }
     }
+    
+    // Show final status
+    println!("\n{} {}", "Final Status:".bright_blue().bold(), 
+        if found_suspicious {
+            "🔴 Suspicious patterns detected".red().bold()
+        } else {
+            "🟢 No suspicious patterns found".green().bold()
+        }
+    );
+    
     Ok(())
 }
 

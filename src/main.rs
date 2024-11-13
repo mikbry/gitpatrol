@@ -223,8 +223,8 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
 
         // Process files in current directory
         for item in files {
-        if let Some(name) = item["name"].as_str() {
-            if name == "package.json" {
+            if let Some(name) = item["name"].as_str() {
+                if name == "package.json" {
                     has_package_json = true;
                 }
                 
@@ -273,7 +273,6 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
                 }
             }
         }
-    }
 
     println!("  {} {}", "📄 package.json:".bright_blue(), 
              if has_package_json { "✓ Yes".green() } else { "✗ No".red() });

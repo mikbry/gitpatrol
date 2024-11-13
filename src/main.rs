@@ -224,8 +224,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
         // Process files in current directory
         for item in files {
         if let Some(name) = item["name"].as_str() {
-            if let Some(name) = item["name"].as_str() {
-                if name == "package.json" {
+            if name == "package.json" {
                     has_package_json = true;
                 }
                 

@@ -285,8 +285,11 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
             }
         }
 
+        // Store total files count
+        let total_files = files.len();
+        
         // Process files in current directory
-        for item in files {
+        for item in &files {
             if let Some(name) = item["name"].as_str() {
                 if name == "package.json" {
                     has_package_json = true;
@@ -301,7 +304,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
                     print!("\r  {} [{}/{}] Analyzing: {}",
                         "🔍".bright_blue(),
                         files_scanned,
-                        files.len(),
+                        total_files,
                         name.bright_yellow()
                     );
                     if let Some(download_url) = item["download_url"].as_str() {

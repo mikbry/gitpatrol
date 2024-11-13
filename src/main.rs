@@ -172,34 +172,67 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
     let client = reqwest::Client::new();
     
     // Get repository info
-    let api_url = format!("https://api.github.com/repos/{}/{}/contents", owner, repo);
-    let response = client
-        .get(&api_url)
-        .header("User-Agent", "Ziiircom-Scanner")
-        .send()
-        .await?;
+    async fn scan_directory(
+        client: &reqwest::Client,
+        path: &str,
+        owner: &str,
+        repo: &str,
+    ) -> Result<(Vec<serde_json::Value>, Vec<serde_json::Value>)> {
+        let api_url = format!("https://api.github.com/repos/{}/{}/contents/{}", owner, repo, path);
+        let response = client
+            .get(&api_url)
+            .header("User-Agent", "Ziiircom-Scanner")
+            .send()
+            .await?;
 
-    if !response.status().is_success() {
-        anyhow::bail!("Failed to fetch repository contents: {}", response.status());
+        if !response.status().is_success() {
+            anyhow::bail!("Failed to fetch repository contents: {}", response.status());
+        }
+
+        let contents: Vec<serde_json::Value> = response.json().await?;
+        let mut files = Vec::new();
+        let mut dirs = Vec::new();
+
+        for item in contents {
+            if let Some(type_str) = item["type"].as_str() {
+                match type_str {
+                    "file" => files.push(item),
+                    "dir" => dirs.push(item),
+                    _ => {}
+                }
+            }
+        }
+
+        Ok((files, dirs))
     }
 
-    let contents: Vec<serde_json::Value> = response.json().await?;
-    
-    // Download and analyze relevant files
+    let mut stack = vec![String::new()]; // Start with root directory
     let mut found_suspicious = false;
     let mut has_package_json = false;
     let mut files_scanned = 0;
 
-    for item in contents {
-        if let Some(name) = item["name"].as_str() {
-            if name == "package.json" {
-                has_package_json = true;
+    while let Some(current_path) = stack.pop() {
+        let (files, dirs) = scan_directory(&client, &current_path, owner, repo).await?;
+        
+        // Add all directories to the stack
+        for dir in dirs {
+            if let Some(path) = dir["path"].as_str() {
+                stack.push(path.to_string());
             }
-            
-            if name.ends_with(".js") || name.ends_with(".ts") || 
-               name.ends_with(".jsx") || name.ends_with(".tsx") {
-                files_scanned += 1;
-                if let Some(download_url) = item["download_url"].as_str() {
+        }
+
+        // Process files in current directory
+        for item in files {
+        if let Some(name) = item["name"].as_str() {
+            if let Some(name) = item["name"].as_str() {
+                if name == "package.json" {
+                    has_package_json = true;
+                }
+                
+                if name.ends_with(".js") || name.ends_with(".ts") || 
+                   name.ends_with(".jsx") || name.ends_with(".tsx") {
+                    files_scanned += 1;
+                    if let Some(download_url) = item["download_url"].as_str() {
                     let response = client.get(download_url).send().await?;
                     let content = response.text().await?;
                     

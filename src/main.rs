@@ -34,7 +34,7 @@ struct Cli {
     path: Option<PathBuf>,
 }
 
-fn analyze_zip_file(zip_path: &PathBuf) -> Result<()> {
+fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     println!("\n{} {}", "Analyzing zip file:".bright_blue().bold(), zip_path.display().to_string().yellow());
     
     let file = File::open(zip_path)
@@ -43,15 +43,12 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<()> {
     let mut archive = ZipArchive::new(file)
         .context("Failed to read zip archive")?;
 
-    analyze_archive(&mut archive)?;
-    Ok(())
+    let found_suspicious = analyze_archive(&mut archive)?;
+    Ok(found_suspicious)
 }
 
-fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
+fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
     let mut found_suspicious = false;
-    
-    println!("\n{}", "🔍 Ziiircom : Git repository malware scanner".bright_cyan().bold());
-    println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
     
     let has_package_json = (0..archive.len()).any(|i| {
         archive.by_index(i)
@@ -149,6 +146,9 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     
+    println!("\n{}", "🔍 Ziiircom : Git repository malware scanner".bright_cyan().bold());
+    println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
+
     if let Some(path) = cli.path {
         if path.is_dir() {
             // Scan all zip files in the directory
@@ -158,8 +158,9 @@ fn main() -> Result<()> {
             for entry in glob(pattern_str)? {
                 match entry {
                     Ok(path) => {
-                        if let Err(e) = analyze_zip_file(&path) {
-                            println!("Error analyzing {}: {}", path.display(), e);
+                        match analyze_zip_file(&path) {
+                            Ok(_) => (),
+                            Err(e) => println!("Error analyzing {}: {}", path.display(), e),
                         }
                     }
                     Err(e) => println!("Error in glob pattern: {}", e),

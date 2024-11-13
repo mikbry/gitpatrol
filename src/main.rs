@@ -67,8 +67,7 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
             .unwrap_or(false)
     });
 
-    println!(
-        "  {} {}",
+    println!("\n  {} {}", // Add newline before final status
         "📄 package.json:".bright_blue(),
         if has_package_json {
             "✓ Yes".green()
@@ -299,6 +298,12 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
                     || name.ends_with(".tsx")
                 {
                     files_scanned += 1;
+                    print!("\r  {} [{}/{}] Analyzing: {}",
+                        "🔍".bright_blue(),
+                        files_scanned,
+                        files.len(),
+                        name.bright_yellow()
+                    );
                     if let Some(download_url) = item["download_url"].as_str() {
                         let response = client.get(download_url).send().await?;
                         let content = response.text().await?;

@@ -140,7 +140,7 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
         }
     );
     
-    Ok(())
+    Ok(found_suspicious)
 }
 
 fn main() -> Result<()> {

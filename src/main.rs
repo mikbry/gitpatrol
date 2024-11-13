@@ -137,7 +137,7 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
                     "\n    {}",
                     "⚠️  WARNING: Suspicious code detected!".yellow().bold()
                 );
-                println!("    {} {}", "📄 File:".bright_blue(), format!("{}/{}", current_path, name).yellow());
+                println!("    {} {}", "📄 File:".bright_blue(), name.yellow());
                 println!(
                     "    {} {}",
                     "↳ Line:".bright_blue(),

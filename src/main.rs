@@ -7,7 +7,9 @@ const VERSION: &str = "1.0.0";
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use url::Url;
 use zip::ZipArchive;
+use tokio::runtime::Runtime;
 
 const MAX_LINE_LENGTH: usize = 500; // Maximum allowed line length
 const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB max file size for JS files
@@ -32,6 +34,10 @@ struct Cli {
     /// Path to analyze (zip file or directory)
     #[arg(short, long)]
     path: Option<PathBuf>,
+
+    /// GitHub repository URL to analyze (e.g. https://github.com/owner/repo)
+    #[arg(short, long)]
+    url: Option<String>,
 }
 
 fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
@@ -147,13 +153,121 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
     Ok(found_suspicious)
 }
 
+async fn analyze_github_repo(url: &str) -> Result<()> {
+    println!("\n{}", "━".repeat(80).bright_blue());
+    println!("{} {}", "🔍 Analyzing GitHub repository:".bright_blue().bold(), url.yellow());
+    println!("{}", "━".repeat(80).bright_blue());
+
+    // Parse the GitHub URL
+    let parsed_url = Url::parse(url)?;
+    let path_segments: Vec<&str> = parsed_url.path_segments().unwrap().collect();
+    if path_segments.len() < 2 {
+        anyhow::bail!("Invalid GitHub URL format. Expected: https://github.com/owner/repo");
+    }
+
+    let owner = path_segments[0];
+    let repo = path_segments[1];
+    
+    // Create HTTP client
+    let client = reqwest::Client::new();
+    
+    // Get repository info
+    let api_url = format!("https://api.github.com/repos/{}/{}/contents", owner, repo);
+    let response = client
+        .get(&api_url)
+        .header("User-Agent", "Ziiircom-Scanner")
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        anyhow::bail!("Failed to fetch repository contents: {}", response.status());
+    }
+
+    let contents: Vec<serde_json::Value> = response.json().await?;
+    
+    // Download and analyze relevant files
+    let mut found_suspicious = false;
+    let mut has_package_json = false;
+
+    for item in contents {
+        if let Some(name) = item["name"].as_str() {
+            if name == "package.json" {
+                has_package_json = true;
+            }
+            
+            if name.ends_with(".js") || name.ends_with(".ts") || 
+               name.ends_with(".jsx") || name.ends_with(".tsx") {
+                if let Some(download_url) = item["download_url"].as_str() {
+                    let response = client.get(download_url).send().await?;
+                    let content = response.text().await?;
+                    
+                    // Analyze the file content using existing logic
+                    for (line_num, line) in content.lines().enumerate() {
+                        if SAFE_PATTERNS.iter().any(|&pattern| line.contains(pattern)) {
+                            continue;
+                        }
+
+                        let is_minified = line.len() > MAX_LINE_LENGTH;
+                        let suspicious_patterns: Vec<&str> = SUSPICIOUS_PATTERNS
+                            .iter()
+                            .filter(|&&pattern| line.contains(pattern))
+                            .copied()
+                            .collect();
+
+                        if (!suspicious_patterns.is_empty() && suspicious_patterns.len() >= 2) || 
+                           (is_minified && !suspicious_patterns.is_empty()) {
+                            println!("\n    {}", "⚠️  WARNING: Suspicious code detected!".yellow().bold());
+                            println!("    {} {}", "📄 File:".bright_blue(), name.yellow());
+                            println!("    {} {}", "↳ Line:".bright_blue(), (line_num + 1).to_string().yellow());
+                            
+                            if is_minified {
+                                println!("      {} {} {}", "⚡ Minified/obfuscated code (length:".red(), 
+                                       line.len().to_string().yellow(), "chars)".red());
+                            }
+                            
+                            if !suspicious_patterns.is_empty() {
+                                println!("      {} {}", "⚠️", "Suspicious patterns found:".red());
+                                for pattern in suspicious_patterns {
+                                    println!("        {} {}", "↳".yellow(), pattern.bright_red());
+                                }
+                            }
+                            
+                            println!("{}", "─".repeat(50).dimmed());
+                            found_suspicious = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    println!("  {} {}", "📄 package.json:".bright_blue(), 
+             if has_package_json { "✓ Yes".green() } else { "✗ No".red() });
+
+    // Show final status
+    println!("\n{}", "┄".repeat(80).bright_blue());
+    println!("  {} {}", "📊 Analysis Result:".bright_blue().bold(), 
+        if found_suspicious {
+            "🔴 Suspicious patterns detected".red().bold()
+        } else {
+            "🟢 No suspicious patterns found".green().bold()
+        }
+    );
+    println!("{}", "━".repeat(80).bright_blue());
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
+    let runtime = Runtime::new()?;
     let cli = Cli::parse();
     
     println!("\n{}", "🔍 Ziiircom : Git repository malware scanner".bright_cyan().bold());
     println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
 
-    if let Some(path) = cli.path {
+    if let Some(url) = cli.url {
+        runtime.block_on(analyze_github_repo(&url))?;
+    } else if let Some(path) = cli.path {
         if path.is_dir() {
             // Scan all zip files in the directory
             let pattern = path.join("**/*.zip");

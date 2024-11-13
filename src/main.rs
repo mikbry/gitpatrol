@@ -363,34 +363,35 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
             }
         }
 
-        println!(
-            "  {} {}",
-            "📄 package.json:".bright_blue(),
-            if has_package_json {
-                "✓ Yes".green()
-            } else {
-                "✗ No".red()
-            }
-        );
-        println!(
-            "  {} {}",
-            "📊 Files scanned:".bright_blue(),
-            files_scanned.to_string().yellow()
-        );
-
-        // Show final status
-        println!("\n{}", "┄".repeat(80).bright_blue());
-        println!(
-            "  {} {}",
-            "📊 Analysis Result:".bright_blue().bold(),
-            if found_suspicious {
-                "🔴 Suspicious patterns detected".red().bold()
-            } else {
-                "🟢 No suspicious patterns found".green().bold()
-            }
-        );
-        println!("{}", "━".repeat(80).bright_blue());
     }
+
+    println!(
+        "  {} {}",
+        "📄 package.json:".bright_blue(),
+        if has_package_json {
+            "✓ Yes".green()
+        } else {
+            "✗ No".red()
+        }
+    );
+    println!(
+        "  {} {}",
+        "📊 Files scanned:".bright_blue(),
+        files_scanned.to_string().yellow()
+    );
+
+    // Show final status
+    println!("\n{}", "┄".repeat(80).bright_blue());
+    println!(
+        "  {} {}",
+        "📊 Analysis Result:".bright_blue().bold(),
+        if found_suspicious {
+            "🔴 Suspicious patterns detected".red().bold()
+        } else {
+            "🟢 No suspicious patterns found".green().bold()
+        }
+    );
+    println!("{}", "━".repeat(80).bright_blue());
     Ok(())
 }
 

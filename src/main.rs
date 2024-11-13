@@ -59,6 +59,14 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
                 println!("File: {}", name);
                 println!("Line number: {}", line_num + 1);
                 println!("Line length: {} characters", line.len());
+                
+                // Check for malicious code pattern
+                if line.contains("(function(") && 
+                   line.matches("_0x[0-9a-fA-F]{4,6}").count() >= 2 &&
+                   line.contains("catch(") {
+                    println!("ALERT: Potential malicious code detected!");
+                    println!("Pattern matches obfuscated self-executing function");
+                }
                 println!("--------------------");
             }
         }

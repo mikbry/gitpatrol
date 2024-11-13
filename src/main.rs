@@ -65,8 +65,8 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
         let mut file = archive.by_index(i)?;
         let name = file.name().to_string();
 
-        // Skip non JavaScript/TypeScript files
-        if !name.ends_with(".js") && !name.ends_with(".ts") {
+        // Skip non JavaScript/TypeScript/React files
+        if !name.ends_with(".js") && !name.ends_with(".ts") && !name.ends_with(".jsx") && !name.ends_with(".tsx") {
             continue;
         }
 

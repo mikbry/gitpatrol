@@ -188,6 +188,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
     // Download and analyze relevant files
     let mut found_suspicious = false;
     let mut has_package_json = false;
+    let mut files_scanned = 0;
 
     for item in contents {
         if let Some(name) = item["name"].as_str() {
@@ -197,6 +198,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
             
             if name.ends_with(".js") || name.ends_with(".ts") || 
                name.ends_with(".jsx") || name.ends_with(".tsx") {
+                files_scanned += 1;
                 if let Some(download_url) = item["download_url"].as_str() {
                     let response = client.get(download_url).send().await?;
                     let content = response.text().await?;
@@ -243,6 +245,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
 
     println!("  {} {}", "📄 package.json:".bright_blue(), 
              if has_package_json { "✓ Yes".green() } else { "✗ No".red() });
+    println!("  {} {}", "📊 Files scanned:".bright_blue(), files_scanned.to_string().yellow());
 
     // Show final status
     println!("\n{}", "┄".repeat(80).bright_blue());

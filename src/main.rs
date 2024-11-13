@@ -9,12 +9,18 @@ use zip::ZipArchive;
 const MAX_LINE_LENGTH: usize = 500; // Maximum allowed line length
 const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB max file size for JS files
 const SUSPICIOUS_PATTERNS: [&str; 6] = [
-    "(function(", // Self executing functions
     "_0x",        // Hex variable names
     "eval(",      // eval usage
     "\\x",        // hex escape sequences
     "base64",     // base64 encoding
-    "fromCharCode" // String.fromCharCode
+    "fromCharCode", // String.fromCharCode
+    "unescape("   // unescape usage
+];
+
+const SAFE_PATTERNS: [&str; 3] = [
+    "!function(e,t)", // jQuery signature
+    "/*! ", // Common minified library header
+    "(function(f)" // Common module pattern
 ];
 
 #[derive(Parser)]
@@ -72,6 +78,11 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
 
         // Analyze each line
         for (line_num, line) in contents.lines().enumerate() {
+            // Skip if line matches any safe pattern
+            if SAFE_PATTERNS.iter().any(|&pattern| line.contains(pattern)) {
+                continue;
+            }
+
             let is_minified = line.len() > MAX_LINE_LENGTH;
             let suspicious_patterns: Vec<&str> = SUSPICIOUS_PATTERNS
                 .iter()
@@ -79,7 +90,9 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
                 .copied()
                 .collect();
 
-            if is_minified || !suspicious_patterns.is_empty() {
+            // Only alert if there are multiple suspicious patterns or specific combinations
+            if (!suspicious_patterns.is_empty() && suspicious_patterns.len() >= 2) || 
+               (is_minified && !suspicious_patterns.is_empty()) {
                 println!("WARNING: Suspicious code detected!");
                 println!("File: {}", name);
                 println!("Line number: {}", line_num + 1);

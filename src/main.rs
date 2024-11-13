@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use colored::*;
 use glob::glob;
 use std::fs::File;
 use std::io::Read;
@@ -32,7 +33,7 @@ struct Cli {
 }
 
 fn analyze_zip_file(zip_path: &PathBuf) -> Result<()> {
-    println!("\nAnalyzing zip file: {}", zip_path.display());
+    println!("\n{} {}", "Analyzing zip file:".bright_blue().bold(), zip_path.display().to_string().yellow());
     
     let file = File::open(zip_path)
         .context("Failed to open zip file")?;
@@ -52,8 +53,8 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
             .unwrap_or(false)
     });
 
-    println!("Repository contains package.json: {}", has_package_json);
-    println!("Analyzing files for suspicious content...");
+    println!("{} {}", "Repository contains package.json:".bright_blue(), if has_package_json { "✓ Yes".green() } else { "✗ No".red() });
+    println!("{}", "Analyzing files for suspicious content...".bright_blue());
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
@@ -67,10 +68,10 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
         // Check file size first
         let file_size = file.size() as usize;
         if file_size > MAX_FILE_SIZE {
-            println!("WARNING: Large JavaScript file detected!");
-            println!("File: {}", name);
-            println!("Size: {} bytes", file_size);
-            println!("--------------------");
+            println!("\n{}", "⚠️  WARNING: Large JavaScript file detected!".yellow().bold());
+            println!("{} {}", "File:".bright_blue(), name.yellow());
+            println!("{} {} {}", "Size:".bright_blue(), file_size.to_string().red(), "bytes".bright_blue());
+            println!("{}", "─".repeat(50).dimmed());
         }
 
         let mut contents = String::new();
@@ -93,35 +94,35 @@ fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<()> {
             // Only alert if there are multiple suspicious patterns or specific combinations
             if (!suspicious_patterns.is_empty() && suspicious_patterns.len() >= 2) || 
                (is_minified && !suspicious_patterns.is_empty()) {
-                println!("WARNING: Suspicious code detected!");
-                println!("File: {}", name);
-                println!("Line number: {}", line_num + 1);
+                println!("\n{}", "⚠️  WARNING: Suspicious code detected!".yellow().bold());
+                println!("{} {}", "File:".bright_blue(), name.yellow());
+                println!("{} {}", "Line number:".bright_blue(), (line_num + 1).to_string().yellow());
                 
                 if is_minified {
-                    println!("- Minified/obfuscated code (length: {} chars)", line.len());
+                    println!("{} {} {}", "- Minified/obfuscated code (length:".red(), line.len().to_string().yellow(), "chars)".red());
                 }
                 
                 if !suspicious_patterns.is_empty() {
-                    println!("- Suspicious patterns found:");
+                    println!("{}", "- Suspicious patterns found:".red());
                     for pattern in suspicious_patterns {
-                        println!("  * {}", pattern);
+                        println!("  {} {}", "•".yellow(), pattern.bright_red());
                     }
                 }
                 
                 // Additional checks for highly suspicious combinations
                 if line.contains("(function(") && 
                    line.matches("_0x[0-9a-fA-F]{4,6}").count() >= 2 {
-                    println!("ALERT: High confidence malicious code detected!");
-                    println!("- Contains obfuscated self-executing function");
-                    println!("- Multiple hex-encoded variables");
+                    println!("\n{}", "🚨 ALERT: High confidence malicious code detected!".red().bold());
+                    println!("{}", "- Contains obfuscated self-executing function".bright_red());
+                    println!("{}", "- Multiple hex-encoded variables".bright_red());
                 }
                 
                 if line.contains("eval(") && line.contains("fromCharCode") {
-                    println!("ALERT: High confidence malicious code detected!");
-                    println!("- Contains eval with character code manipulation");
+                    println!("\n{}", "🚨 ALERT: High confidence malicious code detected!".red().bold());
+                    println!("{}", "- Contains eval with character code manipulation".bright_red());
                 }
                 
-                println!("--------------------");
+                println!("{}", "─".repeat(50).dimmed());
             }
         }
     }
@@ -150,7 +151,7 @@ fn main() -> Result<()> {
         } else if path.extension().map_or(false, |ext| ext == "zip") {
             analyze_zip_file(&path)?;
         } else {
-            println!("Error: Path must be either a directory or a zip file");
+            println!("{}", "Error: Path must be either a directory or a zip file".red().bold());
         }
     } else {
         // Default to scanning assets directory if no path provided
@@ -170,7 +171,7 @@ fn main() -> Result<()> {
                 }
             }
         } else {
-            println!("Error: assets directory not found");
+            println!("{}", "Error: assets directory not found".red().bold());
         }
     }
 

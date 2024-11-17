@@ -82,7 +82,7 @@ fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
     Ok(found_suspicious)
 }
 
-async fn analyze_github_repo(url: &str) -> Result<()> {
+fn analyze_github_repo(url: &str) -> Result<()> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
@@ -91,7 +91,10 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
     );
     println!("{}", "━".repeat(80).bright_blue());
 
-    let connector = GithubConnector::new(url.to_string())?;
+    let rt = Runtime::new()?;
+    let connector = rt.block_on(async {
+        GithubConnector::new(url.to_string()).await
+    })?;
     let scanner = Scanner::new(connector);
     
     let found_suspicious = scanner.scan()?;
@@ -123,8 +126,7 @@ fn main() -> Result<()> {
     println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
 
     if let Some(url) = cli.url {
-        let rt = Runtime::new()?;
-        rt.block_on(analyze_github_repo(&url))?;
+        analyze_github_repo(&url)?;
     } else if let Some(path) = cli.path {
         if path.is_dir() {
             analyze_folder(&path)?;

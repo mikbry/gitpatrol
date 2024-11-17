@@ -12,7 +12,7 @@ pub struct GithubConnector {
 }
 
 impl GithubConnector {
-    pub fn new(url: String) -> Result<Self> {
+    pub async fn new(url: String) -> Result<Self> {
         let parsed_url = Url::parse(&url)?;
         let path_segments: Vec<&str> = parsed_url.path_segments().unwrap().collect();
         if path_segments.len() < 2 {

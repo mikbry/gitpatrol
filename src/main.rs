@@ -4,6 +4,7 @@ mod connectors;
 use anyhow::Result;
 use clap::Parser;
 use colored::*;
+use url::Url;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
 

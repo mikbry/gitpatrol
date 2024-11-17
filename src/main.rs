@@ -423,7 +423,12 @@ fn main() -> Result<()> {
             let pattern = path.join("**/*.zip");
             let pattern_str = pattern.to_str().unwrap_or("**/*.zip");
 
-            for entry in glob(pattern_str)? {
+            let options = MatchOptions {
+                case_sensitive: true,
+                require_literal_separator: false,
+                require_literal_leading_dot: false,
+            };
+            for entry in glob_with(pattern_str, options)? {
                 match entry {
                     Ok(path) => match analyze_zip_file(&path) {
                         Ok(_) => (),
@@ -449,7 +454,12 @@ fn main() -> Result<()> {
             let pattern = assets_path.join("*.zip");
             let pattern_str = pattern.to_str().unwrap_or("assets/*.zip");
 
-            for entry in glob(pattern_str)? {
+            let options = MatchOptions {
+                case_sensitive: true,
+                require_literal_separator: false,
+                require_literal_leading_dot: false,
+            };
+            for entry in glob_with(pattern_str, options)? {
                 match entry {
                     Ok(path) => {
                         if let Err(e) = analyze_zip_file(&path) {

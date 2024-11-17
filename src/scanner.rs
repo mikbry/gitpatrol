@@ -20,9 +20,9 @@ pub const SAFE_PATTERNS: [&str; 3] = [
 ];
 
 pub trait Connector {
-    async fn scan(&self) -> Result<bool>;
-    async fn has_package_json(&self) -> bool;
-    async fn get_file_content(&self, path: &str) -> Result<String>;
+    fn list_files(&self) -> Result<Vec<String>>;
+    fn has_package_json(&self) -> bool;
+    fn get_file_content(&self, path: &str) -> Result<String>;
 }
 
 pub struct Scanner<T: Connector> {
@@ -34,8 +34,21 @@ impl<T: Connector> Scanner<T> {
         Self { connector }
     }
 
-    pub async fn scan(&self) -> Result<bool> {
-        self.connector.scan().await
+    pub fn scan(&self) -> Result<bool> {
+        let mut found_suspicious = false;
+        
+        for file_path in self.connector.list_files()? {
+            if file_path.ends_with(".js") || file_path.ends_with(".ts") 
+               || file_path.ends_with(".jsx") || file_path.ends_with(".tsx") {
+                
+                let content = self.connector.get_file_content(&file_path)?;
+                if self.analyze_content(&content, &file_path, false) {
+                    found_suspicious = true;
+                }
+            }
+        }
+        
+        Ok(found_suspicious)
     }
 
     pub fn analyze_content(&self, content: &str, file_path: &str, is_minified: bool) -> bool {

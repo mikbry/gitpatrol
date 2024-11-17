@@ -22,37 +22,30 @@ impl FolderConnector {
 }
 
 impl Connector for FolderConnector {
-    async fn scan(&self) -> Result<bool> {
+    fn list_files(&self) -> Result<Vec<String>> {
         use walkdir::WalkDir;
-        let mut found_suspicious = false;
-
+        let mut files = Vec::new();
+        
         for entry in WalkDir::new(&self.root_path)
             .into_iter()
             .filter_map(|e| e.ok()) {
-                let path = entry.path();
-                if let Some(ext) = path.extension() {
-                    if ext == "js" || ext == "ts" || ext == "jsx" || ext == "tsx" {
-                        let contents = fs::read_to_string(path)?;
-                        let scanner = super::super::scanner::Scanner::new(self.clone());
-                        if scanner.analyze_content(
-                            &contents,
-                            &path.to_string_lossy(),
-                            false
-                        ) {
-                            found_suspicious = true;
+                if entry.file_type().is_file() {
+                    if let Ok(path) = entry.path().strip_prefix(&self.root_path) {
+                        if let Some(path_str) = path.to_str() {
+                            files.push(path_str.to_string());
                         }
                     }
                 }
             }
-
-        Ok(found_suspicious)
+            
+        Ok(files)
     }
 
-    async fn has_package_json(&self) -> bool {
+    fn has_package_json(&self) -> bool {
         self.has_package_json
     }
 
-    async fn get_file_content(&self, path: &str) -> Result<String> {
+    fn get_file_content(&self, path: &str) -> Result<String> {
         let full_path = self.root_path.join(path);
         Ok(fs::read_to_string(full_path)?)
     }

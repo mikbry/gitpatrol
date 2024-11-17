@@ -32,37 +32,21 @@ impl ZipConnector {
 }
 
 impl Connector for ZipConnector {
-    async fn scan(&self) -> Result<bool> {
-        let mut found_suspicious = false;
-        let mut archive = &self.archive;
-
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i)?;
-            let name = file.name().to_string();
-
-            if !name.ends_with(".js") && !name.ends_with(".ts") 
-               && !name.ends_with(".jsx") && !name.ends_with(".tsx") {
-                continue;
-            }
-
-            let mut contents = String::new();
-            file.read_to_string(&mut contents)?;
-
-            // Use Scanner's analyze_content method through trait object
-            let scanner = super::super::scanner::Scanner::new(self.clone());
-            if scanner.analyze_content(&contents, &name.to_string(), false) {
-                found_suspicious = true;
+    fn list_files(&self) -> Result<Vec<String>> {
+        let mut files = Vec::new();
+        for i in 0..self.archive.len() {
+            if let Ok(file) = self.archive.by_index(i) {
+                files.push(file.name().to_string());
             }
         }
-
-        Ok(found_suspicious)
+        Ok(files)
     }
 
-    async fn has_package_json(&self) -> bool {
+    fn has_package_json(&self) -> bool {
         self.has_package_json
     }
 
-    async fn get_file_content(&self, path: &str) -> Result<String> {
+    fn get_file_content(&self, path: &str) -> Result<String> {
         let mut archive = &self.archive;
         let mut contents = String::new();
         

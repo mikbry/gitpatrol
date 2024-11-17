@@ -1,37 +1,16 @@
 mod scanner;
 mod connectors;
 
-use anyhow::Context;
 use anyhow::Result;
 use clap::Parser;
 use colored::*;
-use url::Url;
-use zip::ZipArchive;
-use std::fs::File;
-use std::io::Read;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
 use glob::glob_with;
 use glob::MatchOptions;
 
-use crate::scanner::VERSION;
-
-const MAX_LINE_LENGTH: usize = 500; // Maximum allowed line length
-const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB max file size for JS files
-const SUSPICIOUS_PATTERNS: [&str; 6] = [
-    "_0x",          // Hex variable names
-    "eval(",        // eval usage
-    "\\x",          // hex escape sequences
-    "base64",       // base64 encoding
-    "fromCharCode", // String.fromCharCode
-    "unescape(",    // unescape usage
-];
-
-const SAFE_PATTERNS: [&str; 3] = [
-    "!function(e,t)", // jQuery signature
-    "/*! ",           // Common minified library header
-    "(function(f)",   // Common module pattern
-];
+use crate::scanner::{Scanner, VERSION};
+use crate::connectors::{ZipConnector, FolderConnector, GithubConnector};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -54,152 +33,12 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     );
     println!("{}", "━".repeat(80).bright_blue());
 
-    let file = File::open(zip_path).context("Failed to open zip file")?;
+    let connector = ZipConnector::new(zip_path.clone())?;
+    let scanner = Scanner::new(connector);
+    
+    let found_suspicious = scanner.scan()?;
 
-    let mut archive = ZipArchive::new(file).context("Failed to read zip archive")?;
-
-    let found_suspicious = analyze_archive(&mut archive)?;
-    Ok(found_suspicious)
-}
-
-fn analyze_archive(archive: &mut ZipArchive<File>) -> Result<bool> {
-    let mut found_suspicious = false;
-
-    let has_package_json = (0..archive.len()).any(|i| {
-        archive
-            .by_index(i)
-            .map(|file| file.name().ends_with("package.json"))
-            .unwrap_or(false)
-    });
-
-    println!("\n  {} {}", // Add newline before final status
-        "📄 package.json:".bright_blue(),
-        if has_package_json {
-            "✓ Yes".green()
-        } else {
-            "✗ No".red()
-        }
-    );
-    println!(
-        "\n  {}",
-        "🔍 Analyzing files for suspicious content...".bright_blue()
-    );
-
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let name = file.name().to_string();
-
-        // Skip non JavaScript/TypeScript/React files
-        if !name.ends_with(".js")
-            && !name.ends_with(".ts")
-            && !name.ends_with(".jsx")
-            && !name.ends_with(".tsx")
-        {
-            continue;
-        }
-
-        // Check file size first
-        let file_size = file.size() as usize;
-        if file_size > MAX_FILE_SIZE {
-            println!(
-                "\n{}",
-                "⚠️  WARNING: Large JavaScript file detected!"
-                    .yellow()
-                    .bold()
-            );
-            println!("{} {}", "File:".bright_blue(), name.yellow());
-            println!(
-                "{} {} {}",
-                "Size:".bright_blue(),
-                file_size.to_string().red(),
-                "bytes".bright_blue()
-            );
-            println!("{}", "─".repeat(50).dimmed());
-        }
-
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-
-        // Analyze each line
-        for (line_num, line) in contents.lines().enumerate() {
-            // Skip if line matches any safe pattern
-            if SAFE_PATTERNS.iter().any(|&pattern| line.contains(pattern)) {
-                continue;
-            }
-
-            let is_minified = line.len() > MAX_LINE_LENGTH;
-            let suspicious_patterns: Vec<&str> = SUSPICIOUS_PATTERNS
-                .iter()
-                .filter(|&&pattern| line.contains(pattern))
-                .copied()
-                .collect();
-
-            // Only alert if there are multiple suspicious patterns or specific combinations
-            if (!suspicious_patterns.is_empty() && suspicious_patterns.len() >= 2)
-                || (is_minified && !suspicious_patterns.is_empty())
-            {
-                println!(
-                    "\n    {}",
-                    "⚠️  WARNING: Suspicious code detected!".yellow().bold()
-                );
-                println!("    {} {}", "📄 File:".bright_blue(), name.yellow());
-                println!(
-                    "    {} {}",
-                    "↳ Line:".bright_blue(),
-                    (line_num + 1).to_string().yellow()
-                );
-
-                if is_minified {
-                    println!(
-                        "      {} {} {}",
-                        "⚡ Minified/obfuscated code (length:".red(),
-                        line.len().to_string().yellow(),
-                        "chars)".red()
-                    );
-                }
-
-                if !suspicious_patterns.is_empty() {
-                    println!("      {} {}", "⚠️", "Suspicious patterns found:".red());
-                    for pattern in suspicious_patterns {
-                        println!("        {} {}", "↳".yellow(), pattern.bright_red());
-                    }
-                }
-
-                // Additional checks for highly suspicious combinations
-                if line.contains("(function(") && line.matches("_0x[0-9a-fA-F]{4,6}").count() >= 2 {
-                    println!(
-                        "\n{}",
-                        "🚨 ALERT: High confidence malicious code detected!"
-                            .red()
-                            .bold()
-                    );
-                    println!(
-                        "{}",
-                        "- Contains obfuscated self-executing function".bright_red()
-                    );
-                    println!("{}", "- Multiple hex-encoded variables".bright_red());
-                }
-
-                if line.contains("eval(") && line.contains("fromCharCode") {
-                    println!(
-                        "\n{}",
-                        "🚨 ALERT: High confidence malicious code detected!"
-                            .red()
-                            .bold()
-                    );
-                    println!(
-                        "{}",
-                        "- Contains eval with character code manipulation".bright_red()
-                    );
-                }
-
-                println!("{}", "─".repeat(50).dimmed());
-                found_suspicious = true;
-            }
-        }
-    }
-
-    // Show final status with separator
+    // Show final status
     println!("\n{}", "┄".repeat(80).bright_blue());
     println!(
         "  {} {}",
@@ -224,174 +63,10 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
     );
     println!("{}", "━".repeat(80).bright_blue());
 
-    // Parse the GitHub URL
-    let parsed_url = Url::parse(url)?;
-    let path_segments: Vec<&str> = parsed_url.path_segments().unwrap().collect();
-    if path_segments.len() < 2 {
-        anyhow::bail!("Invalid GitHub URL format. Expected: https://github.com/owner/repo");
-    }
-
-    let owner = path_segments[0];
-    let repo = path_segments[1];
-
-    // Create HTTP client
-    let client = reqwest::Client::new();
-
-    // Get repository info
-    async fn scan_directory(
-        client: &reqwest::Client,
-        path: &str,
-        owner: &str,
-        repo: &str,
-    ) -> Result<(Vec<serde_json::Value>, Vec<serde_json::Value>)> {
-        let api_url = format!(
-            "https://api.github.com/repos/{}/{}/contents/{}",
-            owner, repo, path
-        );
-        let response = client
-            .get(&api_url)
-            .header("User-Agent", "Ziiircom-Scanner")
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            anyhow::bail!("Failed to fetch repository contents: {}", response.status());
-        }
-
-        let contents: Vec<serde_json::Value> = response.json().await?;
-        let mut files = Vec::new();
-        let mut dirs = Vec::new();
-
-        for item in contents {
-            if let Some(type_str) = item["type"].as_str() {
-                match type_str {
-                    "file" => files.push(item),
-                    "dir" => dirs.push(item),
-                    _ => {}
-                }
-            }
-        }
-
-        Ok((files, dirs))
-    }
-
-    let mut stack = vec![String::new()]; // Start with root directory
-    let mut found_suspicious = false;
-    let mut has_package_json = false;
-    let mut files_scanned = 0;
-
-    while let Some(current_path) = stack.pop() {
-        let (files, dirs) = scan_directory(&client, &current_path, owner, repo).await?;
-
-        // Add all directories to the stack
-        for dir in dirs {
-            if let Some(path) = dir["path"].as_str() {
-                stack.push(path.to_string());
-            }
-        }
-
-        // Store total files count
-        let total_files = files.len();
-        
-        // Process files in current directory
-        for item in &files {
-            if let Some(name) = item["name"].as_str() {
-                if name == "package.json" {
-                    has_package_json = true;
-                }
-
-                if name.ends_with(".js")
-                    || name.ends_with(".ts")
-                    || name.ends_with(".jsx")
-                    || name.ends_with(".tsx")
-                {
-                    files_scanned += 1;
-                    print!("\r  {} [{}/{}] Analyzing: {}",
-                        "🔍".bright_blue(),
-                        files_scanned,
-                        total_files,
-                        name.bright_yellow()
-                    );
-                    if let Some(download_url) = item["download_url"].as_str() {
-                        let response = client.get(download_url).send().await?;
-                        let content = response.text().await?;
-
-                        // Analyze the file content using existing logic
-                        for (line_num, line) in content.lines().enumerate() {
-                            if SAFE_PATTERNS.iter().any(|&pattern| line.contains(pattern)) {
-                                continue;
-                            }
-
-                            let is_minified = line.len() > MAX_LINE_LENGTH;
-                            let suspicious_patterns: Vec<&str> = SUSPICIOUS_PATTERNS
-                                .iter()
-                                .filter(|&&pattern| line.contains(pattern))
-                                .copied()
-                                .collect();
-
-                            if (!suspicious_patterns.is_empty() && suspicious_patterns.len() >= 2)
-                                || (is_minified && !suspicious_patterns.is_empty())
-                            {
-                                println!(
-                                    "\n    {}",
-                                    "⚠️  WARNING: Suspicious code detected!".yellow().bold()
-                                );
-                                println!("    {} {}", "📄 File:".bright_blue(), item["path"].as_str().unwrap_or(name).yellow());
-                                println!(
-                                    "    {} {}",
-                                    "↳ Line:".bright_blue(),
-                                    (line_num + 1).to_string().yellow()
-                                );
-
-                                if is_minified {
-                                    println!(
-                                        "      {} {} {}",
-                                        "⚡ Minified/obfuscated code (length:".red(),
-                                        line.len().to_string().yellow(),
-                                        "chars)".red()
-                                    );
-                                }
-
-                                if !suspicious_patterns.is_empty() {
-                                    println!(
-                                        "      {} {}",
-                                        "⚠️",
-                                        "Suspicious patterns found:".red()
-                                    );
-                                    for pattern in suspicious_patterns {
-                                        println!(
-                                            "        {} {}",
-                                            "↳".yellow(),
-                                            pattern.bright_red()
-                                        );
-                                    }
-                                }
-
-                                println!("{}", "─".repeat(50).dimmed());
-                                found_suspicious = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-
-    println!(
-        "  {} {}",
-        "📄 package.json:".bright_blue(),
-        if has_package_json {
-            "✓ Yes".green()
-        } else {
-            "✗ No".red()
-        }
-    );
-    println!(
-        "  {} {}",
-        "📊 Files scanned:".bright_blue(),
-        files_scanned.to_string().yellow()
-    );
+    let connector = GithubConnector::new(url.to_string())?;
+    let scanner = Scanner::new(connector);
+    
+    let found_suspicious = scanner.scan()?;
 
     // Show final status
     println!("\n{}", "┄".repeat(80).bright_blue());

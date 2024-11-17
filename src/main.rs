@@ -4,7 +4,6 @@ mod scanner;
 use anyhow::Result;
 use clap::Parser;
 use colored::*;
-use tokio::task::spawn_blocking;
 use std::path::PathBuf;
 
 use crate::connectors::{FolderConnector, GithubConnector, ZipConnector};
@@ -109,7 +108,7 @@ async fn analyze_github_repo(url: &str) -> Result<bool> {
     );
     println!("{}", "━".repeat(80).bright_blue());
 
-    Ok(())
+    Ok(found_suspicious)
 }
 
 #[tokio::main]

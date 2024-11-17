@@ -34,7 +34,8 @@ impl super::Connector for FolderConnector {
                         let contents = fs::read_to_string(path)?;
                         if super::super::scanner::Scanner::analyze_content(
                             &contents, 
-                            path.to_str().unwrap_or("unknown")
+                            path.to_str().unwrap_or("unknown"),
+                            false
                         ) {
                             found_suspicious = true;
                         }

@@ -64,7 +64,7 @@ impl Connector for GithubConnector {
                                         .send().await?
                                         .text().await?;
                                     
-                                    if super::super::scanner::Scanner::analyze_content(&content, path) {
+                                    if super::super::scanner::Scanner::analyze_content(&content, path, false) {
                                         found_suspicious = true;
                                     }
                                 }

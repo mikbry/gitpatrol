@@ -51,10 +51,23 @@ impl GithubConnector {
 
         let status = response.status();
         if !status.is_success() {
+            let error_body = response.text().await?;
             match status.as_u16() {
-                404 => anyhow::bail!("Repository not found: {}/{}", self.owner, self.repo),
-                403 => anyhow::bail!("Access denied - Repository may be private"),
-                _ => anyhow::bail!("GitHub API error: {}", status)
+                404 => {
+                    if error_body.contains("Not Found") {
+                        anyhow::bail!("Repository not found: {}/{}", self.owner, self.repo)
+                    } else {
+                        anyhow::bail!("Path not found in repository")
+                    }
+                },
+                403 => {
+                    if error_body.contains("rate limit") {
+                        anyhow::bail!("GitHub API rate limit exceeded. Please try again later.")
+                    } else {
+                        anyhow::bail!("Access denied - Repository may be private")
+                    }
+                },
+                _ => anyhow::bail!("GitHub API error ({}): {}", status, error_body)
             }
         }
 

@@ -60,7 +60,23 @@ impl Connector for GithubConnector {
             let mut stack = vec![String::new()];
             
             while let Some(current_path) = stack.pop() {
-                if let Ok(contents) = self.fetch_contents(&current_path).await {
+                let api_url = format!(
+                    "https://api.github.com/repos/{}/{}/contents/{}",
+                    owner, repo, current_path
+                );
+
+                let response = client
+                    .get(&api_url)
+                    .header("User-Agent", "Ziiircom-Scanner")
+                    .send()
+                    .await;
+
+                if let Ok(response) = response {
+                    if !response.status().is_success() {
+                        continue;
+                    }
+
+                    if let Ok(contents) = response.json::<Vec<serde_json::Value>>().await {
                     for item in contents {
                         if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
                             match type_str {

@@ -67,17 +67,20 @@ impl GithubConnector {
         let mut stack = vec![String::new()];
         
         while let Some(current_path) = stack.pop() {
-            if let Ok(contents) = self.fetch_contents(&current_path).await {
-                for item in contents {
-                    if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
-                        match type_str {
-                            "dir" => stack.push(path.to_string()),
-                            "file" => files.push(path.to_string()),
-                            _ => {}
-                        }
+            let contents = self.fetch_contents(&current_path).await?;
+            for item in contents {
+                if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
+                    match type_str {
+                        "dir" => stack.push(path.to_string()),
+                        "file" => files.push(path.to_string()),
+                        _ => {}
                     }
                 }
             }
+        }
+        
+        if files.is_empty() {
+            anyhow::bail!("No files found in repository");
         }
         
         Ok(files)

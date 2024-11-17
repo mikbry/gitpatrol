@@ -93,22 +93,32 @@ async fn analyze_github_repo(url: &str) -> Result<bool> {
     let connector = GithubConnector::new(url.to_string())?;
     let scanner = Scanner::new(connector);
 
-    let found_suspicious = scanner.scan().await?;
-
-    // Show final status
-    println!("\n{}", "┄".repeat(80).bright_blue());
-    println!(
-        "  {} {}",
-        "📊 Analysis Result:".bright_blue().bold(),
-        if found_suspicious {
-            "🔴 Suspicious patterns detected".red().bold()
-        } else {
-            "🟢 No suspicious patterns found".green().bold()
+    match scanner.scan().await {
+        Ok(found_suspicious) => {
+            println!("\n{}", "┄".repeat(80).bright_blue());
+            println!(
+                "  {} {}",
+                "📊 Analysis Result:".bright_blue().bold(),
+                if found_suspicious {
+                    "🔴 Suspicious patterns detected".red().bold()
+                } else {
+                    "🟢 No suspicious patterns found".green().bold()
+                }
+            );
+            println!("{}", "━".repeat(80).bright_blue());
+            Ok(found_suspicious)
+        },
+        Err(e) => {
+            println!("\n{}", "┄".repeat(80).bright_blue());
+            println!(
+                "  {} {}",
+                "📊 Analysis Result:".bright_blue().bold(),
+                format!("🔴 Error scanning repository: {}", e).red().bold()
+            );
+            println!("{}", "━".repeat(80).bright_blue());
+            Err(e)
         }
-    );
-    println!("{}", "━".repeat(80).bright_blue());
-
-    Ok(found_suspicious)
+    }
 }
 
 #[tokio::main]

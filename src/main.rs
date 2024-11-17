@@ -1,14 +1,14 @@
-mod scanner;
 mod connectors;
+mod scanner;
 
 use anyhow::Result;
 use clap::Parser;
 use colored::*;
+use tokio::task::spawn_blocking;
 use std::path::PathBuf;
-use tokio::runtime::Runtime;
 
+use crate::connectors::{FolderConnector, GithubConnector, ZipConnector};
 use crate::scanner::{Scanner, VERSION};
-use crate::connectors::{ZipConnector, FolderConnector, GithubConnector};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -33,7 +33,7 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
 
     let connector = ZipConnector::new(zip_path.clone())?;
     let scanner = Scanner::new(connector);
-    
+
     let found_suspicious = scanner.scan()?;
 
     // Show final status
@@ -63,7 +63,7 @@ fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
 
     let connector = FolderConnector::new(folder_path.clone())?;
     let scanner = Scanner::new(connector);
-    
+
     let found_suspicious = scanner.scan()?;
 
     // Show final status
@@ -82,7 +82,7 @@ fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
     Ok(found_suspicious)
 }
 
-fn analyze_github_repo(url: &str) -> Result<()> {
+async fn analyze_github_repo(url: &str) -> Result<()> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
@@ -91,31 +91,31 @@ fn analyze_github_repo(url: &str) -> Result<()> {
     );
     println!("{}", "━".repeat(80).bright_blue());
 
-    let rt = Runtime::new()?;
-    let connector = rt.block_on(async {
-        GithubConnector::new(url.to_string()).await
-    })?;
-    drop(rt); // Explicitly drop runtime before creating scanner
-    let scanner = Scanner::new(connector);
-    
-    let found_suspicious = scanner.scan()?;
+    let url = url.to_string();
+    let _handle = spawn_blocking(|| async {
+        if let Ok(connector) = GithubConnector::new(url).await {
+            let scanner = Scanner::new(connector);
 
-    // Show final status
-    println!("\n{}", "┄".repeat(80).bright_blue());
-    println!(
-        "  {} {}",
-        "📊 Analysis Result:".bright_blue().bold(),
-        if found_suspicious {
-            "🔴 Suspicious patterns detected".red().bold()
-        } else {
-            "🟢 No suspicious patterns found".green().bold()
+            let found_suspicious = scanner.scan();
+            // Show final status
+            println!("\n{}", "┄".repeat(80).bright_blue());
+            println!(
+                "  {} {}",
+                "📊 Analysis Result:".bright_blue().bold(),
+                if found_suspicious.is_ok() {
+                    "🔴 Suspicious patterns detected".red().bold()
+                } else {
+                    "🟢 No suspicious patterns found".green().bold()
+                }
+            );
+            println!("{}", "━".repeat(80).bright_blue());
         }
-    );
-    println!("{}", "━".repeat(80).bright_blue());
+    }).await;
     Ok(())
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     println!(
@@ -127,7 +127,7 @@ fn main() -> Result<()> {
     println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
 
     if let Some(url) = cli.url {
-        analyze_github_repo(&url)?;
+        analyze_github_repo(&url).await?;
     } else if let Some(path) = cli.path {
         if path.is_dir() {
             analyze_folder(&path)?;
@@ -143,10 +143,25 @@ fn main() -> Result<()> {
         }
     } else {
         println!("\n{}", "Usage:".bright_blue().bold());
-        println!("  {} {}", "Scan a directory:".yellow(), "cargo run -- -p ./path/to/dir".bright_blue());
-        println!("  {} {}", "Scan a zip file:".yellow(), "cargo run -- -p ./path/to/file.zip".bright_blue());
-        println!("  {} {}", "Scan a GitHub repo:".yellow(), "cargo run -- -u https://github.com/owner/repo".bright_blue());
-        println!("\nFor more options, run: {}", "cargo run -- --help".bright_blue());
+        println!(
+            "  {} {}",
+            "Scan a directory:".yellow(),
+            "cargo run -- -p ./path/to/dir".bright_blue()
+        );
+        println!(
+            "  {} {}",
+            "Scan a zip file:".yellow(),
+            "cargo run -- -p ./path/to/file.zip".bright_blue()
+        );
+        println!(
+            "  {} {}",
+            "Scan a GitHub repo:".yellow(),
+            "cargo run -- -u https://github.com/owner/repo".bright_blue()
+        );
+        println!(
+            "\nFor more options, run: {}",
+            "cargo run -- --help".bright_blue()
+        );
     }
 
     Ok(())

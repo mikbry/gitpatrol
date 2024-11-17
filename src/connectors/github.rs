@@ -65,31 +65,34 @@ impl Connector for GithubConnector {
                     owner, repo, current_path
                 );
 
-                let response = client
+                match client
                     .get(&api_url)
                     .header("User-Agent", "Ziiircom-Scanner")
                     .send()
-                    .await;
-
-                if let Ok(response) = response {
-                    if !response.status().is_success() {
-                        continue;
-                    }
-
-                    if let Ok(contents) = response.json::<Vec<serde_json::Value>>().await {
-                    for item in contents {
-                        if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
-                            match type_str {
-                                "dir" => stack.push(path.to_string()),
-                                "file" => {
-                                    let _ = tx.send(path.to_string()).await;
+                    .await
+                {
+                    Ok(response) if response.status().is_success() => {
+                        if let Ok(contents) = response.json::<Vec<serde_json::Value>>().await {
+                            for item in contents {
+                                if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
+                                    match type_str {
+                                        "dir" => stack.push(path.to_string()),
+                                        "file" => {
+                                            if tx.send(path.to_string()).await.is_err() {
+                                                return;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
                                 }
-                                _ => {}
                             }
                         }
                     }
+                    _ => continue,
                 }
             }
+            // Explicitly drop tx when done to close the channel
+            drop(tx);
         });
 
         Ok(Box::pin(tokio_stream::wrappers::ReceiverStream::new(rx)))

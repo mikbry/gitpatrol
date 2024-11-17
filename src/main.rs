@@ -7,6 +7,8 @@ use colored::*;
 use url::Url;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
+use glob::glob_with;
+use glob::MatchOptions;
 
 use crate::scanner::{Scanner, VERSION};
 use crate::connectors::github::GithubConnector;

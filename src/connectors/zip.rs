@@ -66,7 +66,8 @@ impl Connector for ZipConnector {
     type FileIter = ZipFileIterator;
 
     fn iter(&self) -> Result<Self::FileIter> {
-        let mut archive = self.archive.lock()?;
+        let archive = self.archive.lock()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire lock: {}", e))?;
         let total_files = archive.len();
         Ok(ZipFileIterator {
             archive: Arc::clone(&self.archive),
@@ -81,7 +82,8 @@ impl Connector for ZipConnector {
 
     fn get_file_content(&self, path: &str) -> Result<String> {
         let mut contents = String::new();
-        let mut archive = self.archive.lock()?;
+        let mut archive = self.archive.lock()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire lock: {}", e))?;
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;

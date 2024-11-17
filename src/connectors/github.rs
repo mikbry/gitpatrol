@@ -89,14 +89,15 @@ impl Connector for GithubConnector {
     }
 
     async fn get_file_content(&self, path: &str) -> Result<String> {
-        let download_url = format!(
+        let api_url = format!(
             "https://api.github.com/repos/{}/{}/contents/{}",
             self.owner, self.repo, path
         );
         
         let response = self.client
-            .get(&download_url)
+            .get(&api_url)
             .header("User-Agent", "Ziiircom-Scanner")
+            .header("Accept", "application/vnd.github.v3+json")
             .send()
             .await?;
 
@@ -104,7 +105,15 @@ impl Connector for GithubConnector {
             anyhow::bail!("Failed to fetch file contents: {}", response.status());
         }
 
-        Ok(response.text().await?)
+        let content: serde_json::Value = response.json().await?;
+        
+        if let Some(content) = content["content"].as_str() {
+            // GitHub API returns base64 encoded content
+            let decoded = base64::decode(content.replace("\n", ""))?;
+            String::from_utf8(decoded).map_err(|e| anyhow::anyhow!("Invalid UTF-8: {}", e))
+        } else {
+            anyhow::bail!("No content found in GitHub response")
+        }
     }
 
     async fn has_package_json(&self) -> Result<bool> {

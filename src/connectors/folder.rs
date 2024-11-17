@@ -43,22 +43,23 @@ impl Iterator for FolderFileIterator {
     }
 }
 
+#[async_trait::async_trait]
 impl Connector for FolderConnector {
     type FileIter = FolderFileIterator;
 
-    fn iter(&self) -> Result<Self::FileIter> {
+    async fn iter(&self) -> Result<Self::FileIter> {
         Ok(FolderFileIterator {
             walker: WalkDir::new(&self.root_path).into_iter(),
             root_path: self.root_path.clone(),
         })
     }
 
-    fn has_package_json(&self) -> Result<bool> {
+    async fn has_package_json(&self) -> Result<bool> {
         Ok(Path::new(&self.root_path).join("package.json").exists())
     }
 
-    fn get_file_content(&self, path: &str) -> Result<String> {
+    async fn get_file_content(&self, path: &str) -> Result<String> {
         let full_path = self.root_path.join(path);
-        Ok(fs::read_to_string(full_path)?)
+        tokio::fs::read_to_string(full_path).await.map_err(Into::into)
     }
 }

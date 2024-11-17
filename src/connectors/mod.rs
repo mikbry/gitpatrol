@@ -1,11 +1,12 @@
 use anyhow::Result;
 
+#[async_trait::async_trait]
 pub trait Connector {
     type FileIter: Iterator<Item = String>;
     
-    fn iter(&self) -> Result<Self::FileIter>;
-    fn get_file_content(&self, path: &str) -> Result<String>;
-    fn has_package_json(&self) -> Result<bool>;
+    async fn iter(&self) -> Result<Self::FileIter>;
+    async fn get_file_content(&self, path: &str) -> Result<String>;
+    async fn has_package_json(&self) -> Result<bool>;
 }
 
 pub mod github;

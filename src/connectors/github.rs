@@ -77,17 +77,18 @@ impl GithubConnector {
     }
 }
 
+#[async_trait::async_trait]
 impl Connector for GithubConnector {
     type FileIter = GithubFileIterator;
 
-    fn iter(&self) -> Result<Self::FileIter> {
-        let files = self.collect_files()?;
+    async fn iter(&self) -> Result<Self::FileIter> {
+        let files = self.collect_files().await?;
         Ok(GithubFileIterator {
             files: files.into_iter()
         })
     }
 
-    fn get_file_content(&self, path: &str) -> Result<String> {
+    async fn get_file_content(&self, path: &str) -> Result<String> {
         let download_url = format!(
             "https://api.github.com/repos/{}/{}/contents/{}",
             self.owner, self.repo, path
@@ -96,16 +97,17 @@ impl Connector for GithubConnector {
         let response = self.client
             .get(&download_url)
             .header("User-Agent", "Ziiircom-Scanner")
-            .send()?;
+            .send()
+            .await?;
 
         if !response.status().is_success() {
             anyhow::bail!("Failed to fetch file contents: {}", response.status());
         }
 
-        Ok(response.text()?)
+        Ok(response.text().await?)
     }
 
-    fn has_package_json(&self) -> Result<bool> {
+    async fn has_package_json(&self) -> Result<bool> {
         let api_url = format!(
             "https://api.github.com/repos/{}/{}/contents/package.json",
             self.owner, self.repo
@@ -114,7 +116,8 @@ impl Connector for GithubConnector {
         let response = self.client
             .get(&api_url)
             .header("User-Agent", "Ziiircom-Scanner")
-            .send()?;
+            .send()
+            .await?;
 
         Ok(response.status().is_success())
     }

@@ -1,12 +1,12 @@
 use crate::connectors::Connector;
 use anyhow::Result;
-use reqwest;
+use reqwest::{self, blocking::Client};
 use url::Url;
 
 #[derive(Clone)]
 pub struct GithubConnector {
     url: String,
-    client: reqwest::Client,
+    client: Client,
     owner: String,
     repo: String,
 }
@@ -21,7 +21,7 @@ impl GithubConnector {
 
         Ok(Self {
             url,
-            client: reqwest::Client::new(),
+            client: Client::new(),
             owner: path_segments[0].to_string(),
             repo: path_segments[1].to_string(),
         })
@@ -29,7 +29,7 @@ impl GithubConnector {
 }
 
 pub struct GithubFileIterator {
-    client: reqwest::Client,
+    client: Client,
     owner: String,
     repo: String,
     stack: Vec<String>,
@@ -69,8 +69,7 @@ impl GithubFileIterator {
         let response = self.client
             .get(&api_url)
             .header("User-Agent", "Ziiircom-Scanner")
-            .send()
-            .blocking()?;
+            .send()?;
 
         if !response.status().is_success() {
             return Ok(Vec::new());
@@ -103,7 +102,6 @@ impl Connector for GithubConnector {
             .get(&api_url)
             .header("User-Agent", "Ziiircom-Scanner")
             .send()
-            .blocking()
             .ok()
             .and_then(|response| Some(response.status().is_success()))
             .unwrap_or(false)
@@ -117,8 +115,7 @@ impl Connector for GithubConnector {
         let response = self.client
             .get(&download_url)
             .header("User-Agent", "Ziiircom-Scanner")
-            .send()
-            .blocking()?;
+            .send()?;
 
         if !response.status().is_success() {
             anyhow::bail!("Failed to fetch file contents: {}", response.status());

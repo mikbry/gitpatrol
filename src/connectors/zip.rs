@@ -5,6 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::path::PathBuf;
 
+#[derive(Clone)]
 pub struct ZipConnector {
     archive: ZipArchive<File>,
     has_package_json: bool,
@@ -48,7 +49,7 @@ impl super::Connector for ZipConnector {
             file.read_to_string(&mut contents)?;
 
             // Use Scanner's analyze_content method through trait object
-            let scanner = super::super::scanner::Scanner::new(self);
+            let scanner = super::super::scanner::Scanner::new(self.clone());
             if scanner.analyze_content(&contents, &name.to_string(), false) {
                 found_suspicious = true;
             }

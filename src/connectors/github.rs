@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use reqwest;
 use url::Url;
 
+#[derive(Clone)]
 pub struct GithubConnector {
     url: String,
     client: reqwest::Client,
@@ -64,7 +65,7 @@ impl Connector for GithubConnector {
                                         .send().await?
                                         .text().await?;
                                     
-                                    let scanner = super::super::scanner::Scanner::new(self);
+                                    let scanner = super::super::scanner::Scanner::new(self.clone());
                                     if scanner.analyze_content(&content, &path.to_string(), false) {
                                         found_suspicious = true;
                                     }

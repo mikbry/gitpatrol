@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use async_trait::async_trait;
 
+#[derive(Clone)]
 pub struct FolderConnector {
     root_path: PathBuf,
     has_package_json: bool,
@@ -32,7 +33,7 @@ impl super::Connector for FolderConnector {
                 if let Some(ext) = path.extension() {
                     if ext == "js" || ext == "ts" || ext == "jsx" || ext == "tsx" {
                         let contents = fs::read_to_string(path)?;
-                        let scanner = super::super::scanner::Scanner::new(self);
+                        let scanner = super::super::scanner::Scanner::new(self.clone());
                         if scanner.analyze_content(
                             &contents,
                             &path.to_string_lossy(),

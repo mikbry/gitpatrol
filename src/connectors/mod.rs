@@ -5,6 +5,7 @@ pub trait Connector {
     
     fn iter(&self) -> Result<Self::FileIter>;
     fn get_file_content(&self, path: &str) -> Result<String>;
+    fn has_package_json(&self) -> bool;
 }
 
 pub mod github;

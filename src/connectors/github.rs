@@ -100,9 +100,7 @@ impl Connector for GithubConnector {
             .get(&api_url)
             .header("User-Agent", "Ziiircom-Scanner")
             .send()
-            .ok()
-            .and_then(|response| Some(response.status().is_success()))
-            .unwrap_or(false)
+            .map_or(false, |response| response.status().is_success())
     }
 
     fn get_file_content(&self, path: &str) -> Result<String> {

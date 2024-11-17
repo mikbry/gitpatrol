@@ -7,16 +7,12 @@ use crate::connectors::Connector;
 #[derive(Clone)]
 pub struct FolderConnector {
     root_path: PathBuf,
-    has_package_json: bool,
 }
 
 impl FolderConnector {
     pub fn new(path: PathBuf) -> Result<Self> {
-        let has_package_json = Path::new(&path).join("package.json").exists();
-        
         Ok(Self {
             root_path: path,
-            has_package_json,
         })
     }
 }
@@ -58,7 +54,7 @@ impl Connector for FolderConnector {
     }
 
     fn has_package_json(&self) -> bool {
-        self.has_package_json
+        Path::new(&self.root_path).join("package.json").exists()
     }
 
     fn get_file_content(&self, path: &str) -> Result<String> {

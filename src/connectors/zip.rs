@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex};
 
 pub struct ZipConnector {
     archive: Arc<Mutex<ZipArchive<File>>>,
-    has_package_json: bool,
 }
 
 pub struct ZipFileIterator {
@@ -45,19 +44,9 @@ impl Iterator for ZipFileIterator {
 impl ZipConnector {
     pub fn new(path: PathBuf) -> Result<Self> {
         let file = File::open(path)?;
-        let mut archive = ZipArchive::new(file)?;
-        let len = archive.len();
-
-        let has_package_json = (0..len).any(|i| {
-            archive
-                .by_index(i)
-                .map(|file| file.name().ends_with("package.json"))
-                .unwrap_or(false)
-        });
-
+        let archive = ZipArchive::new(file)?;
         Ok(Self {
             archive: Arc::new(Mutex::new(archive)),
-            has_package_json,
         })
     }
 }
@@ -77,7 +66,16 @@ impl Connector for ZipConnector {
     }
 
     fn has_package_json(&self) -> bool {
-        self.has_package_json
+        if let Ok(archive) = self.archive.lock() {
+            for i in 0..archive.len() {
+                if let Ok(file) = archive.by_index(i) {
+                    if file.name().ends_with("package.json") {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
     }
 
     fn get_file_content(&self, path: &str) -> Result<String> {

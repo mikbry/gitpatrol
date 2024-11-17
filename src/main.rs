@@ -22,7 +22,7 @@ struct Cli {
     url: Option<String>,
 }
 
-fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
+async fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
@@ -34,7 +34,7 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     let connector = ZipConnector::new(zip_path.clone())?;
     let scanner = Scanner::new(connector);
 
-    let found_suspicious = scanner.scan()?;
+    let found_suspicious = scanner.scan().await?;
 
     // Show final status
     println!("\n{}", "┄".repeat(80).bright_blue());
@@ -52,7 +52,7 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     Ok(found_suspicious)
 }
 
-fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
+async fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
@@ -64,7 +64,7 @@ fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
     let connector = FolderConnector::new(folder_path.clone())?;
     let scanner = Scanner::new(connector);
 
-    let found_suspicious = scanner.scan()?;
+    let found_suspicious = scanner.scan().await?;
 
     // Show final status
     println!("\n{}", "┄".repeat(80).bright_blue());
@@ -94,7 +94,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
     let connector = GithubConnector::new(url.to_string()).await?;
     let scanner = Scanner::new(connector);
 
-    let found_suspicious = scanner.scan()?;
+    let found_suspicious = scanner.scan().await?;
 
     // Show final status
     println!("\n{}", "┄".repeat(80).bright_blue());
@@ -128,9 +128,9 @@ async fn main() -> Result<()> {
         analyze_github_repo(&url).await?;
     } else if let Some(path) = cli.path {
         if path.is_dir() {
-            analyze_folder(&path)?;
+            analyze_folder(&path).await?;
         } else if path.extension().map_or(false, |ext| ext == "zip") {
-            analyze_zip_file(&path)?;
+            analyze_zip_file(&path).await?;
         } else {
             println!(
                 "{}",

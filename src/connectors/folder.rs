@@ -22,8 +22,27 @@ impl FolderConnector {
 #[async_trait]
 impl super::Connector for FolderConnector {
     async fn scan(&self) -> Result<bool> {
-        // Implementation will be added in next step
-        Ok(false)
+        use walkdir::WalkDir;
+        let mut found_suspicious = false;
+
+        for entry in WalkDir::new(&self.root_path)
+            .into_iter()
+            .filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    if ext == "js" || ext == "ts" || ext == "jsx" || ext == "tsx" {
+                        let contents = fs::read_to_string(path)?;
+                        if super::super::scanner::Scanner::analyze_content(
+                            &contents, 
+                            path.to_str().unwrap_or("unknown")
+                        ) {
+                            found_suspicious = true;
+                        }
+                    }
+                }
+            }
+
+        Ok(found_suspicious)
     }
 
     fn has_package_json(&self) -> bool {

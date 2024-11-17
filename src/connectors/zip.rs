@@ -32,8 +32,28 @@ impl ZipConnector {
 #[async_trait]
 impl super::Connector for ZipConnector {
     async fn scan(&self) -> Result<bool> {
-        // Implementation will be added in next step
-        Ok(false)
+        let mut found_suspicious = false;
+        let mut archive = &self.archive;
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            let name = file.name().to_string();
+
+            if !name.ends_with(".js") && !name.ends_with(".ts") 
+               && !name.ends_with(".jsx") && !name.ends_with(".tsx") {
+                continue;
+            }
+
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)?;
+
+            // Use Scanner's analyze_content method through trait object
+            if super::super::scanner::Scanner::analyze_content(&contents, &name) {
+                found_suspicious = true;
+            }
+        }
+
+        Ok(found_suspicious)
     }
 
     fn has_package_json(&self) -> bool {

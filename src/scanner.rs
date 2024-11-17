@@ -39,7 +39,7 @@ impl<T: Connector> Scanner<T> {
     pub fn scan(&self) -> Result<bool> {
         let mut found_suspicious = false;
         
-        for file_path in self.connector.list_files()? {
+        for file_path in self.connector.files()? {
             if file_path.ends_with(".js") || file_path.ends_with(".ts") 
                || file_path.ends_with(".jsx") || file_path.ends_with(".tsx") {
                 

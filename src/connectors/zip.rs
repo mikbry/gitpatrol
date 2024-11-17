@@ -24,14 +24,27 @@ impl Iterator for ZipFileIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.current_index < self.total_files {
-            if let Ok(mut archive) = self.archive.lock() {
-                if let Ok(file) = archive.by_index(self.current_index) {
-                    let name = file.name().to_string();
+            // Use match to better handle the Result from lock()
+            match self.archive.lock() {
+                Ok(mut archive) => {
+                    match archive.by_index(self.current_index) {
+                        Ok(file) => {
+                            let name = file.name().to_string();
+                            self.current_index += 1;
+                            return Some(name);
+                        }
+                        Err(_) => {
+                            self.current_index += 1;
+                            continue;
+                        }
+                    }
+                }
+                Err(_) => {
+                    // If we can't acquire the lock, skip this iteration
                     self.current_index += 1;
-                    return Some(name);
+                    continue;
                 }
             }
-            self.current_index += 1;
         }
         None
     }

@@ -104,7 +104,8 @@ impl Connector for GithubConnector {
             .header("User-Agent", "Ziiircom-Scanner")
             .send()
             .blocking()
-            .map(|response| response.status().is_success())
+            .ok()
+            .and_then(|response| Some(response.status().is_success()))
             .unwrap_or(false)
     }
 
@@ -117,12 +118,12 @@ impl Connector for GithubConnector {
             .get(&download_url)
             .header("User-Agent", "Ziiircom-Scanner")
             .send()
-            .await?;
+            .blocking()?;
 
         if !response.status().is_success() {
             anyhow::bail!("Failed to fetch file contents: {}", response.status());
         }
 
-        Ok(response.text().await?)
+        Ok(response.text()?)
     }
 }

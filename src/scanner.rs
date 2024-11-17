@@ -39,7 +39,7 @@ impl<T: Connector> Scanner<T> {
         self.connector.scan().await
     }
 
-    pub fn analyze_content(&self, content: &str, file_path: &str) -> bool {
+    pub fn analyze_content(&self, content: &str, file_path: &str, is_minified: bool) -> bool {
         let mut found_suspicious = false;
 
         for (line_num, line) in content.lines().enumerate() {

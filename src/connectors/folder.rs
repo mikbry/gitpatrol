@@ -33,8 +33,8 @@ impl super::Connector for FolderConnector {
                     if ext == "js" || ext == "ts" || ext == "jsx" || ext == "tsx" {
                         let contents = fs::read_to_string(path)?;
                         if super::super::scanner::Scanner::analyze_content(
-                            &contents, 
-                            path.to_str().unwrap_or("unknown"),
+                            &contents,
+                            &path.to_string_lossy(),
                             false
                         ) {
                             found_suspicious = true;

@@ -48,7 +48,7 @@ impl super::Connector for ZipConnector {
             file.read_to_string(&mut contents)?;
 
             // Use Scanner's analyze_content method through trait object
-            if super::super::scanner::Scanner::analyze_content(&contents, &name, false) {
+            if super::super::scanner::Scanner::analyze_content(&contents, &name.to_string(), false) {
                 found_suspicious = true;
             }
         }

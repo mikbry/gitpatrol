@@ -82,7 +82,7 @@ async fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
     Ok(found_suspicious)
 }
 
-async fn analyze_github_repo(url: &str) -> Result<()> {
+async fn analyze_github_repo(url: &str) -> Result<bool> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
@@ -125,7 +125,15 @@ async fn main() -> Result<()> {
     println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
 
     if let Some(url) = cli.url {
-        analyze_github_repo(&url).await?;
+        match analyze_github_repo(&url).await {
+            Ok(found_suspicious) => {
+                // Result already printed in analyze_github_repo
+            }
+            Err(e) => {
+                println!("\n{} {}", "Error:".red().bold(), e);
+                std::process::exit(1);
+            }
+        }
     } else if let Some(path) = cli.path {
         if path.is_dir() {
             analyze_folder(&path).await?;

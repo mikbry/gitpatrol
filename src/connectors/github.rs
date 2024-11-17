@@ -49,10 +49,11 @@ impl GithubConnector {
             .send().await?;
 
         if !response.status().is_success() {
-            return Ok(Vec::new());
+            anyhow::bail!("GitHub API error: {} - Repository may not exist or be private", response.status());
         }
 
-        Ok(response.json().await?)
+        let json = response.json().await?;
+        Ok(json)
     }
 
     async fn collect_files(&self) -> Result<Vec<String>> {

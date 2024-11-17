@@ -83,7 +83,7 @@ impl GithubFileIterator {
 impl Connector for GithubConnector {
     type FileIter = GithubFileIterator;
 
-    fn files(&self) -> Result<Self::FileIter> {
+    fn iter(&self) -> Result<Self::FileIter> {
         Ok(GithubFileIterator {
             client: self.client.clone(),
             owner: self.owner.clone(),

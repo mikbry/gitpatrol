@@ -19,13 +19,6 @@ pub const SAFE_PATTERNS: [&str; 3] = [
     "(function(f)",   // Common module pattern
 ];
 
-pub trait Connector {
-    type FileIter: Iterator<Item = String>;
-    
-    fn files(&self) -> Result<Self::FileIter>;
-    fn has_package_json(&self) -> bool;
-    fn get_file_content(&self, path: &str) -> Result<String>;
-}
 
 pub struct Scanner<T: Connector> {
     connector: T,
@@ -39,7 +32,7 @@ impl<T: Connector> Scanner<T> {
     pub fn scan(&self) -> Result<bool> {
         let mut found_suspicious = false;
         
-        for file_path in self.connector.files()? {
+        for file_path in self.connector.iter()? {
             if file_path.ends_with(".js") || file_path.ends_with(".ts") 
                || file_path.ends_with(".jsx") || file_path.ends_with(".tsx") {
                 

@@ -50,7 +50,7 @@ impl Iterator for FolderFileIterator {
 impl Connector for FolderConnector {
     type FileIter = FolderFileIterator;
 
-    fn files(&self) -> Result<Self::FileIter> {
+    fn iter(&self) -> Result<Self::FileIter> {
         Ok(FolderFileIterator {
             walker: WalkDir::new(&self.root_path).into_iter(),
             root_path: self.root_path.clone(),

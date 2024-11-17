@@ -56,7 +56,7 @@ impl ZipConnector {
 impl Connector for ZipConnector {
     type FileIter = ZipFileIterator;
 
-    fn files(&self) -> Result<Self::FileIter> {
+    fn iter(&self) -> Result<Self::FileIter> {
         Ok(ZipFileIterator {
             archive: Arc::clone(&self.archive),
             current_index: 0,

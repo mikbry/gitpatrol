@@ -91,7 +91,7 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
     );
     println!("{}", "━".repeat(80).bright_blue());
 
-    let connector = GithubConnector::new(url.to_string()).await?;
+    let connector = GithubConnector::new(url.to_string())?;
     let scanner = Scanner::new(connector);
 
     let found_suspicious = scanner.scan().await?;

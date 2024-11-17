@@ -37,7 +37,7 @@ impl<T: Connector> Scanner<T> {
             if file_path.ends_with(".js") || file_path.ends_with(".ts") 
                || file_path.ends_with(".jsx") || file_path.ends_with(".tsx") {
                 
-                let content = self.connector.get_file_content(&file_path).await?;
+                let content = self.connector.get_file_content(&file_path)?;
                 if self.analyze_content(&content, &file_path) {
                     found_suspicious = true;
                 }

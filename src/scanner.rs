@@ -30,14 +30,14 @@ impl<T: Connector> Scanner<T> {
         Self { connector }
     }
 
-    pub fn scan(&self) -> Result<bool> {
+    pub async fn scan(&self) -> Result<bool> {
         let mut found_suspicious = false;
         
         for file_path in self.connector.iter()? {
             if file_path.ends_with(".js") || file_path.ends_with(".ts") 
                || file_path.ends_with(".jsx") || file_path.ends_with(".tsx") {
                 
-                let content = self.connector.get_file_content(&file_path)?;
+                let content = self.connector.get_file_content(&file_path).await?;
                 if self.analyze_content(&content, &file_path) {
                     found_suspicious = true;
                 }

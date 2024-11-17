@@ -1,11 +1,13 @@
 use anyhow::Result;
+use std::pin::Pin;
+use futures::Stream;
 
 pub trait Connector {
-    type FileIter: Iterator<Item = String>;
+    type FileIter: Stream<Item = String> + Send + 'static;
     
-    fn iter(&self) -> Result<Self::FileIter>;
-    fn get_file_content(&self, path: &str) -> Result<String>;
-    fn has_package_json(&self) -> bool;
+    fn iter(&self) -> Result<Pin<Box<Self::FileIter>>>;
+    async fn get_file_content(&self, path: &str) -> Result<String>;
+    async fn has_package_json(&self) -> Result<bool>;
 }
 
 pub mod github;

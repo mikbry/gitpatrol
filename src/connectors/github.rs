@@ -1,9 +1,11 @@
 use crate::connectors::Connector;
 use anyhow::Result;
-use reqwest::{self, blocking::Client};
+use futures::{Stream, StreamExt};
+use reqwest::Client;
+use std::pin::Pin;
 use url::Url;
+use tokio::sync::mpsc;
 
-#[derive(Clone)]
 pub struct GithubConnector {
     client: Client,
     owner: String,
@@ -24,99 +26,90 @@ impl GithubConnector {
             repo: path_segments[1].to_string(),
         })
     }
+
+    async fn fetch_contents(&self, path: &str) -> Result<Vec<serde_json::Value>> {
+        let api_url = format!(
+            "https://api.github.com/repos/{}/{}/contents/{}",
+            self.owner, self.repo, path
+        );
+
+        let response = self.client
+            .get(&api_url)
+            .header("User-Agent", "Ziiircom-Scanner")
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Ok(Vec::new());
+        }
+
+        Ok(response.json().await?)
+    }
 }
 
-pub struct GithubFileIterator {
-    client: Client,
-    owner: String,
-    repo: String,
-    stack: Vec<String>,
-    current_files: Vec<String>,
-}
+impl Connector for GithubConnector {
+    type FileIter = Pin<Box<dyn Stream<Item = String> + Send>>;
 
-impl Iterator for GithubFileIterator {
-    type Item = String;
+    fn iter(&self) -> Result<Self::FileIter> {
+        let (tx, rx) = mpsc::channel(32);
+        let client = self.client.clone();
+        let owner = self.owner.clone();
+        let repo = self.repo.clone();
 
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.current_files.is_empty() && !self.stack.is_empty() {
-            if let Some(current_path) = self.stack.pop() {
-                if let Ok(contents) = self.fetch_contents(&current_path) {
+        tokio::spawn(async move {
+            let mut stack = vec![String::new()];
+            
+            while let Some(current_path) = stack.pop() {
+                if let Ok(contents) = self.fetch_contents(&current_path).await {
                     for item in contents {
                         if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
                             match type_str {
-                                "dir" => self.stack.push(path.to_string()),
-                                "file" => self.current_files.push(path.to_string()),
+                                "dir" => stack.push(path.to_string()),
+                                "file" => {
+                                    let _ = tx.send(path.to_string()).await;
+                                }
                                 _ => {}
                             }
                         }
                     }
                 }
             }
-        }
-        self.current_files.pop()
-    }
-}
+        });
 
-impl GithubFileIterator {
-    fn fetch_contents(&self, path: &str) -> Result<Vec<serde_json::Value>> {
-        let api_url = format!(
-            "https://api.github.com/repos/{}/{}/contents/{}",
-            self.owner, self.repo, path
-        );
-
-        let response = self.client
-            .get(&api_url)
-            .header("User-Agent", "Ziiircom-Scanner")
-            .send()?;
-
-        if !response.status().is_success() {
-            return Ok(Vec::new());
-        }
-
-        Ok(response.json()?)
-    }
-}
-
-impl Connector for GithubConnector {
-    type FileIter = GithubFileIterator;
-
-    fn iter(&self) -> Result<Self::FileIter> {
-        Ok(GithubFileIterator {
-            client: self.client.clone(),
-            owner: self.owner.clone(),
-            repo: self.repo.clone(),
-            stack: vec![String::new()],
-            current_files: Vec::new(),
-        })
+        Ok(Box::pin(tokio_stream::wrappers::ReceiverStream::new(rx)))
     }
 
-    fn has_package_json(&self) -> bool {
-        let api_url = format!(
-            "https://api.github.com/repos/{}/{}/contents/package.json",
-            self.owner, self.repo
-        );
-
-        self.client
-            .get(&api_url)
-            .header("User-Agent", "Ziiircom-Scanner")
-            .send()
-            .map_or(false, |response| response.status().is_success())
-    }
-
-    fn get_file_content(&self, path: &str) -> Result<String> {
+    async fn get_file_content(&self, path: &str) -> Result<String> {
         let download_url = format!(
             "https://api.github.com/repos/{}/{}/contents/{}",
             self.owner, self.repo, path
         );
+        
         let response = self.client
             .get(&download_url)
             .header("User-Agent", "Ziiircom-Scanner")
-            .send()?;
+            .send()
+            .await?;
 
         if !response.status().is_success() {
             anyhow::bail!("Failed to fetch file contents: {}", response.status());
         }
 
-        Ok(response.text()?)
+        Ok(response.text().await?)
+    }
+
+    async fn has_package_json(&self) -> Result<bool> {
+        let api_url = format!(
+            "https://api.github.com/repos/{}/{}/contents/package.json",
+            self.owner, self.repo
+        );
+
+        let response = self.client
+            .get(&api_url)
+            .header("User-Agent", "Ziiircom-Scanner")
+            .send()
+            .await?;
+
+        Ok(response.status().is_success())
     }
 }

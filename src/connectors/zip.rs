@@ -66,7 +66,7 @@ impl Connector for ZipConnector {
     }
 
     fn has_package_json(&self) -> bool {
-        if let Ok(archive) = self.archive.lock() {
+        if let Ok(mut archive) = self.archive.lock() {
             for i in 0..archive.len() {
                 if let Ok(file) = archive.by_index(i) {
                     if file.name().ends_with("package.json") {

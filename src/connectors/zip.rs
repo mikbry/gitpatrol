@@ -1,10 +1,10 @@
+use anyhow::Result;
 use std::fs::File;
 use std::io::Read;
-use zip::ZipArchive;
-use anyhow::Result;
 use std::path::PathBuf;
+use zip::ZipArchive;
 
-use crate::scanner::Connector;
+use crate::connectors::Connector;
 
 use std::sync::{Arc, Mutex};
 
@@ -24,7 +24,7 @@ impl Iterator for ZipFileIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.current_index < self.total_files {
-            if let Ok(archive) = self.archive.lock() {
+            if let Ok(mut archive) = self.archive.lock() {
                 if let Ok(file) = archive.by_index(self.current_index) {
                     let name = file.name().to_string();
                     self.current_index += 1;
@@ -42,7 +42,7 @@ impl ZipConnector {
         let file = File::open(path)?;
         let mut archive = ZipArchive::new(file)?;
         let len = archive.len();
-        
+
         let has_package_json = (0..len).any(|i| {
             archive
                 .by_index(i)
@@ -61,7 +61,8 @@ impl Connector for ZipConnector {
     type FileIter = ZipFileIterator;
 
     fn iter(&self) -> Result<Self::FileIter> {
-        let total_files = self.archive.lock()?.len();
+        let mut archive = self.archive.lock()?;
+        let total_files = archive.len();
         Ok(ZipFileIterator {
             archive: Arc::clone(&self.archive),
             current_index: 0,
@@ -76,7 +77,7 @@ impl Connector for ZipConnector {
     fn get_file_content(&self, path: &str) -> Result<String> {
         let mut contents = String::new();
         let mut archive = self.archive.lock()?;
-        
+
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             if file.name() == path {
@@ -84,7 +85,7 @@ impl Connector for ZipConnector {
                 return Ok(contents);
             }
         }
-        
+
         anyhow::bail!("File not found in zip: {}", path)
     }
 }

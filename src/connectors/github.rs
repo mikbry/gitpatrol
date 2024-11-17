@@ -1,6 +1,5 @@
 use crate::scanner::Connector;
 use anyhow::Result;
-use async_trait::async_trait;
 use reqwest;
 use url::Url;
 
@@ -29,7 +28,6 @@ impl GithubConnector {
     }
 }
 
-#[async_trait]
 impl Connector for GithubConnector {
     async fn scan(&self) -> Result<bool> {
         let mut found_suspicious = false;

@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use anyhow::Result;
-use async_trait::async_trait;
+
+use crate::scanner::Connector;
 
 #[derive(Clone)]
 pub struct FolderConnector {
@@ -20,8 +21,7 @@ impl FolderConnector {
     }
 }
 
-#[async_trait]
-impl super::Connector for FolderConnector {
+impl Connector for FolderConnector {
     async fn scan(&self) -> Result<bool> {
         use walkdir::WalkDir;
         let mut found_suspicious = false;
@@ -48,7 +48,7 @@ impl super::Connector for FolderConnector {
         Ok(found_suspicious)
     }
 
-    fn has_package_json(&self) -> bool {
+    async fn has_package_json(&self) -> bool {
         self.has_package_json
     }
 

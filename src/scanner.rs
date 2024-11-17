@@ -19,10 +19,9 @@ pub const SAFE_PATTERNS: [&str; 3] = [
     "(function(f)",   // Common module pattern
 ];
 
-#[async_trait::async_trait]
 pub trait Connector {
     async fn scan(&self) -> Result<bool>;
-    fn has_package_json(&self) -> bool;
+    async fn has_package_json(&self) -> bool;
     async fn get_file_content(&self, path: &str) -> Result<String>;
 }
 

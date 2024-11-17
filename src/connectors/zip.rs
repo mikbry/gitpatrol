@@ -2,8 +2,9 @@ use std::fs::File;
 use std::io::Read;
 use zip::ZipArchive;
 use anyhow::Result;
-use async_trait::async_trait;
 use std::path::PathBuf;
+
+use crate::scanner::Connector;
 
 #[derive(Clone)]
 pub struct ZipConnector {
@@ -30,8 +31,7 @@ impl ZipConnector {
     }
 }
 
-#[async_trait]
-impl super::Connector for ZipConnector {
+impl Connector for ZipConnector {
     async fn scan(&self) -> Result<bool> {
         let mut found_suspicious = false;
         let mut archive = &self.archive;
@@ -58,7 +58,7 @@ impl super::Connector for ZipConnector {
         Ok(found_suspicious)
     }
 
-    fn has_package_json(&self) -> bool {
+    async fn has_package_json(&self) -> bool {
         self.has_package_json
     }
 

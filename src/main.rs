@@ -95,6 +95,7 @@ fn analyze_github_repo(url: &str) -> Result<()> {
     let connector = rt.block_on(async {
         GithubConnector::new(url.to_string()).await
     })?;
+    drop(rt); // Explicitly drop runtime before creating scanner
     let scanner = Scanner::new(connector);
     
     let found_suspicious = scanner.scan()?;

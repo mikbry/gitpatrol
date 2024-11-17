@@ -5,7 +5,6 @@ use url::Url;
 
 #[derive(Clone)]
 pub struct GithubConnector {
-    url: String,
     client: Client,
     owner: String,
     repo: String,
@@ -20,7 +19,6 @@ impl GithubConnector {
         }
 
         Ok(Self {
-            url,
             client: Client::new(),
             owner: path_segments[0].to_string(),
             repo: path_segments[1].to_string(),

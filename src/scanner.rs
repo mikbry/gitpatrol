@@ -5,7 +5,6 @@ use crate::connectors::Connector;
 
 pub const VERSION: &str = "1.0.0";
 pub const MAX_LINE_LENGTH: usize = 500;
-pub const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB max file size for JS files
 pub const SUSPICIOUS_PATTERNS: [&str; 6] = [
     "_0x",          // Hex variable names
     "eval(",        // eval usage
@@ -39,7 +38,7 @@ impl<T: Connector> Scanner<T> {
                || file_path.ends_with(".jsx") || file_path.ends_with(".tsx") {
                 
                 let content = self.connector.get_file_content(&file_path)?;
-                if self.analyze_content(&content, &file_path, false) {
+                if self.analyze_content(&content, &file_path) {
                     found_suspicious = true;
                 }
             }
@@ -48,7 +47,7 @@ impl<T: Connector> Scanner<T> {
         Ok(found_suspicious)
     }
 
-    pub fn analyze_content(&self, content: &str, file_path: &str, is_minified: bool) -> bool {
+    pub fn analyze_content(&self, content: &str, file_path: &str) -> bool {
         let mut found_suspicious = false;
 
         for (line_num, line) in content.lines().enumerate() {

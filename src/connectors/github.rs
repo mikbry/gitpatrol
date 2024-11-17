@@ -1,4 +1,4 @@
-use crate::scanner::Connector;
+use crate::connectors::Connector;
 use anyhow::Result;
 use reqwest;
 use url::Url;

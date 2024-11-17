@@ -1,17 +1,20 @@
 mod scanner;
 mod connectors;
 
+use anyhow::Context;
 use anyhow::Result;
 use clap::Parser;
 use colored::*;
 use url::Url;
+use zip::ZipArchive;
+use std::fs::File;
+use std::io::Read;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
 use glob::glob_with;
 use glob::MatchOptions;
 
-use crate::scanner::{Scanner, VERSION};
-use crate::connectors::github::GithubConnector;
+use crate::scanner::VERSION;
 
 const MAX_LINE_LENGTH: usize = 500; // Maximum allowed line length
 const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB max file size for JS files

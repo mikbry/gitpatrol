@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use anyhow::Result;
 
-use crate::scanner::Connector;
+use crate::connectors::Connector;
 
 #[derive(Clone)]
 pub struct FolderConnector {

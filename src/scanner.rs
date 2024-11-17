@@ -1,6 +1,8 @@
 use anyhow::Result;
 use colored::*;
 
+use crate::connectors::Connector;
+
 pub const VERSION: &str = "1.0.0";
 pub const MAX_LINE_LENGTH: usize = 500;
 pub const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB max file size for JS files

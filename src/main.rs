@@ -54,6 +54,36 @@ fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     Ok(found_suspicious)
 }
 
+fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
+    println!("\n{}", "━".repeat(80).bright_blue());
+    println!(
+        "{} {}",
+        "📁 Analyzing folder:".bright_blue().bold(),
+        folder_path.display().to_string().yellow()
+    );
+    println!("{}", "━".repeat(80).bright_blue());
+
+    let connector = FolderConnector::new(folder_path.clone())?;
+    let scanner = Scanner::new(connector);
+    
+    let found_suspicious = scanner.scan()?;
+
+    // Show final status
+    println!("\n{}", "┄".repeat(80).bright_blue());
+    println!(
+        "  {} {}",
+        "📊 Analysis Result:".bright_blue().bold(),
+        if found_suspicious {
+            "🔴 Suspicious patterns detected".red().bold()
+        } else {
+            "🟢 No suspicious patterns found".green().bold()
+        }
+    );
+    println!("{}", "━".repeat(80).bright_blue());
+
+    Ok(found_suspicious)
+}
+
 async fn analyze_github_repo(url: &str) -> Result<()> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
@@ -99,24 +129,7 @@ fn main() -> Result<()> {
         runtime.block_on(analyze_github_repo(&url))?;
     } else if let Some(path) = cli.path {
         if path.is_dir() {
-            // Scan all zip files in the directory
-            let pattern = path.join("**/*.zip");
-            let pattern_str = pattern.to_str().unwrap_or("**/*.zip");
-
-            let options = MatchOptions {
-                case_sensitive: true,
-                require_literal_separator: false,
-                require_literal_leading_dot: false,
-            };
-            for entry in glob_with(pattern_str, options)? {
-                match entry {
-                    Ok(path) => match analyze_zip_file(&path) {
-                        Ok(_) => (),
-                        Err(e) => println!("Error analyzing {}: {}", path.display(), e),
-                    },
-                    Err(e) => println!("Error in glob pattern: {}", e),
-                }
-            }
+            analyze_folder(&path)?;
         } else if path.extension().map_or(false, |ext| ext == "zip") {
             analyze_zip_file(&path)?;
         } else {
@@ -131,24 +144,7 @@ fn main() -> Result<()> {
         // Default to scanning assets directory if no path provided
         let assets_path = PathBuf::from("assets");
         if assets_path.is_dir() {
-            let pattern = assets_path.join("*.zip");
-            let pattern_str = pattern.to_str().unwrap_or("assets/*.zip");
-
-            let options = MatchOptions {
-                case_sensitive: true,
-                require_literal_separator: false,
-                require_literal_leading_dot: false,
-            };
-            for entry in glob_with(pattern_str, options)? {
-                match entry {
-                    Ok(path) => {
-                        if let Err(e) = analyze_zip_file(&path) {
-                            println!("Error analyzing {}: {}", path.display(), e);
-                        }
-                    }
-                    Err(e) => println!("Error in glob pattern: {}", e),
-                }
-            }
+            analyze_folder(&assets_path)?;
         } else {
             println!("{}", "Error: assets directory not found".red().bold());
         }

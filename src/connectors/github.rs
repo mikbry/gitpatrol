@@ -48,8 +48,13 @@ impl GithubConnector {
             .header("User-Agent", "Ziiircom-Scanner")
             .send().await?;
 
-        if !response.status().is_success() {
-            anyhow::bail!("GitHub API error: {} - Repository may not exist or be private", response.status());
+        let status = response.status();
+        if !status.is_success() {
+            match status.as_u16() {
+                404 => anyhow::bail!("Repository not found: {}/{}", self.owner, self.repo),
+                403 => anyhow::bail!("Access denied - Repository may be private"),
+                _ => anyhow::bail!("GitHub API error: {}", status)
+            }
         }
 
         let json = response.json().await?;

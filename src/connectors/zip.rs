@@ -6,15 +6,15 @@ use std::path::PathBuf;
 
 use crate::scanner::Connector;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct ZipConnector {
-    archive: Arc<ZipArchive<File>>,
+    archive: Arc<Mutex<ZipArchive<File>>>,
     has_package_json: bool,
 }
 
 pub struct ZipFileIterator {
-    archive: Arc<ZipArchive<File>>,
+    archive: Arc<Mutex<ZipArchive<File>>>,
     current_index: usize,
     total_files: usize,
 }
@@ -24,9 +24,12 @@ impl Iterator for ZipFileIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.current_index < self.total_files {
-            if let Ok(file) = self.archive.by_index(self.current_index) {
-                self.current_index += 1;
-                return Some(file.name().to_string());
+            if let Ok(archive) = self.archive.lock() {
+                if let Ok(file) = archive.by_index(self.current_index) {
+                    let name = file.name().to_string();
+                    self.current_index += 1;
+                    return Some(name);
+                }
             }
             self.current_index += 1;
         }
@@ -38,8 +41,9 @@ impl ZipConnector {
     pub fn new(path: PathBuf) -> Result<Self> {
         let file = File::open(path)?;
         let mut archive = ZipArchive::new(file)?;
+        let len = archive.len();
         
-        let has_package_json = (0..archive.len()).any(|i| {
+        let has_package_json = (0..len).any(|i| {
             archive
                 .by_index(i)
                 .map(|file| file.name().ends_with("package.json"))
@@ -47,7 +51,7 @@ impl ZipConnector {
         });
 
         Ok(Self {
-            archive: Arc::new(archive),
+            archive: Arc::new(Mutex::new(archive)),
             has_package_json,
         })
     }
@@ -57,10 +61,11 @@ impl Connector for ZipConnector {
     type FileIter = ZipFileIterator;
 
     fn iter(&self) -> Result<Self::FileIter> {
+        let total_files = self.archive.lock()?.len();
         Ok(ZipFileIterator {
             archive: Arc::clone(&self.archive),
             current_index: 0,
-            total_files: self.archive.len(),
+            total_files,
         })
     }
 
@@ -69,8 +74,8 @@ impl Connector for ZipConnector {
     }
 
     fn get_file_content(&self, path: &str) -> Result<String> {
-        let mut archive = &self.archive;
         let mut contents = String::new();
+        let mut archive = self.archive.lock()?;
         
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;

@@ -3,6 +3,7 @@ use anyhow::Result;
 use reqwest::Client;
 use url::Url;
 use std::vec::IntoIter;
+use base64::Engine;
 
 pub struct GithubConnector {
     client: Client,

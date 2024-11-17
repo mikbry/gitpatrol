@@ -1,6 +1,6 @@
 use crate::connectors::Connector;
 use anyhow::Result;
-use reqwest::blocking::Client;
+use reqwest::Client;
 use url::Url;
 use std::vec::IntoIter;
 
@@ -37,7 +37,7 @@ impl GithubConnector {
         })
     }
 
-    fn fetch_contents(&self, path: &str) -> Result<Vec<serde_json::Value>> {
+    async fn fetch_contents(&self, path: &str) -> Result<Vec<serde_json::Value>> {
         let api_url = format!(
             "https://api.github.com/repos/{}/{}/contents/{}",
             self.owner, self.repo, path
@@ -46,21 +46,21 @@ impl GithubConnector {
         let response = self.client
             .get(&api_url)
             .header("User-Agent", "Ziiircom-Scanner")
-            .send()?;
+            .send().await?;
 
         if !response.status().is_success() {
             return Ok(Vec::new());
         }
 
-        Ok(response.json()?)
+        Ok(response.json().await?)
     }
 
-    fn collect_files(&self) -> Result<Vec<String>> {
+    async fn collect_files(&self) -> Result<Vec<String>> {
         let mut files = Vec::new();
         let mut stack = vec![String::new()];
         
         while let Some(current_path) = stack.pop() {
-            if let Ok(contents) = self.fetch_contents(&current_path) {
+            if let Ok(contents) = self.fetch_contents(&current_path).await {
                 for item in contents {
                     if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
                         match type_str {

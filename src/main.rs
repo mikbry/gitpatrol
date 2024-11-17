@@ -125,7 +125,7 @@ async fn main() -> Result<()> {
 
     if let Some(url) = cli.url {
         match analyze_github_repo(&url).await {
-            Ok(found_suspicious) => {
+            Ok(_) => {
                 // Result already printed in analyze_github_repo
             }
             Err(e) => {

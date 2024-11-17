@@ -6,7 +6,6 @@ pub trait Connector {
     
     async fn iter(&self) -> Result<Self::FileIter>;
     async fn get_file_content(&self, path: &str) -> Result<String>;
-    async fn has_package_json(&self) -> Result<bool>;
 }
 
 pub mod github;

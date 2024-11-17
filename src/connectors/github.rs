@@ -115,25 +115,11 @@ impl Connector for GithubConnector {
         
         if let Some(content) = content["content"].as_str() {
             // GitHub API returns base64 encoded content
-            let decoded = base64::decode(content.replace("\n", ""))?;
+            let decoded = base64::engine::general_purpose::STANDARD.decode(content.replace("\n", ""))?;
             String::from_utf8(decoded).map_err(|e| anyhow::anyhow!("Invalid UTF-8: {}", e))
         } else {
             anyhow::bail!("No content found in GitHub response")
         }
     }
 
-    async fn has_package_json(&self) -> Result<bool> {
-        let api_url = format!(
-            "https://api.github.com/repos/{}/{}/contents/package.json",
-            self.owner, self.repo
-        );
-
-        let response = self.client
-            .get(&api_url)
-            .header("User-Agent", "Ziiircom-Scanner")
-            .send()
-            .await?;
-
-        Ok(response.status().is_success())
-    }
 }

@@ -66,18 +66,6 @@ impl Connector for ZipConnector {
         })
     }
 
-    async fn has_package_json(&self) -> Result<bool> {
-        if let Ok(mut archive) = self.archive.lock() {
-            for i in 0..archive.len() {
-                if let Ok(file) = archive.by_index(i) {
-                    if file.name().ends_with("package.json") {
-                        return Ok(true);
-                    }
-                }
-            }
-        }
-        Ok(false)
-    }
 
     async fn get_file_content(&self, path: &str) -> Result<String> {
         let mut contents = String::new();

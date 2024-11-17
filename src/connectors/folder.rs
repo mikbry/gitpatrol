@@ -53,9 +53,6 @@ impl Connector for FolderConnector {
         })
     }
 
-    async fn has_package_json(&self) -> Result<bool> {
-        Ok(Path::new(&self.root_path).join("package.json").exists())
-    }
 
     async fn get_file_content(&self, path: &str) -> Result<String> {
         let full_path = self.root_path.join(path);

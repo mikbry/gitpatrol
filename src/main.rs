@@ -112,7 +112,6 @@ async fn analyze_github_repo(url: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let runtime = Runtime::new()?;
     let cli = Cli::parse();
 
     println!(
@@ -124,7 +123,8 @@ fn main() -> Result<()> {
     println!("{} {}\n", "Version:".bright_blue(), VERSION.yellow());
 
     if let Some(url) = cli.url {
-        runtime.block_on(analyze_github_repo(&url))?;
+        let rt = Runtime::new()?;
+        rt.block_on(analyze_github_repo(&url))?;
     } else if let Some(path) = cli.path {
         if path.is_dir() {
             analyze_folder(&path)?;

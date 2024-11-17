@@ -20,7 +20,9 @@ pub const SAFE_PATTERNS: [&str; 3] = [
 ];
 
 pub trait Connector {
-    fn list_files(&self) -> Result<Vec<String>>;
+    type FileIter: Iterator<Item = String>;
+    
+    fn files(&self) -> Result<Self::FileIter>;
     fn has_package_json(&self) -> bool;
     fn get_file_content(&self, path: &str) -> Result<String>;
 }

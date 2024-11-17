@@ -21,24 +21,40 @@ impl FolderConnector {
     }
 }
 
-impl Connector for FolderConnector {
-    fn list_files(&self) -> Result<Vec<String>> {
-        use walkdir::WalkDir;
-        let mut files = Vec::new();
-        
-        for entry in WalkDir::new(&self.root_path)
-            .into_iter()
-            .filter_map(|e| e.ok()) {
+use walkdir::{WalkDir, IntoIter as WalkDirIter};
+
+pub struct FolderFileIterator {
+    walker: WalkDirIter,
+    root_path: PathBuf,
+}
+
+impl Iterator for FolderFileIterator {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for entry in &mut self.walker {
+            if let Ok(entry) = entry {
                 if entry.file_type().is_file() {
                     if let Ok(path) = entry.path().strip_prefix(&self.root_path) {
                         if let Some(path_str) = path.to_str() {
-                            files.push(path_str.to_string());
+                            return Some(path_str.to_string());
                         }
                     }
                 }
             }
-            
-        Ok(files)
+        }
+        None
+    }
+}
+
+impl Connector for FolderConnector {
+    type FileIter = FolderFileIterator;
+
+    fn files(&self) -> Result<Self::FileIter> {
+        Ok(FolderFileIterator {
+            walker: WalkDir::new(&self.root_path).into_iter(),
+            root_path: self.root_path.clone(),
+        })
     }
 
     fn has_package_json(&self) -> bool {

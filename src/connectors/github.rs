@@ -28,41 +28,69 @@ impl GithubConnector {
     }
 }
 
-impl Connector for GithubConnector {
-    fn list_files(&self) -> Result<Vec<String>> {
-        let mut files = Vec::new();
-        let mut stack = vec![String::new()];
+pub struct GithubFileIterator {
+    client: reqwest::Client,
+    owner: String,
+    repo: String,
+    stack: Vec<String>,
+    current_files: Vec<String>,
+}
 
-        while let Some(current_path) = stack.pop() {
-            let api_url = format!(
-                "https://api.github.com/repos/{}/{}/contents/{}",
-                self.owner, self.repo, current_path
-            );
+impl Iterator for GithubFileIterator {
+    type Item = String;
 
-            let response = self.client
-                .get(&api_url)
-                .header("User-Agent", "Ziiircom-Scanner")
-                .send()
-                .blocking()?;
-
-            if !response.status().is_success() {
-                continue;
-            }
-
-            let contents: Vec<serde_json::Value> = response.json()?;
-
-            for item in contents {
-                if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
-                    match type_str {
-                        "dir" => stack.push(path.to_string()),
-                        "file" => files.push(path.to_string()),
-                        _ => {}
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.current_files.is_empty() && !self.stack.is_empty() {
+            if let Some(current_path) = self.stack.pop() {
+                if let Ok(contents) = self.fetch_contents(&current_path) {
+                    for item in contents {
+                        if let (Some(type_str), Some(path)) = (item["type"].as_str(), item["path"].as_str()) {
+                            match type_str {
+                                "dir" => self.stack.push(path.to_string()),
+                                "file" => self.current_files.push(path.to_string()),
+                                _ => {}
+                            }
+                        }
                     }
                 }
             }
         }
+        self.current_files.pop()
+    }
+}
 
-        Ok(files)
+impl GithubFileIterator {
+    fn fetch_contents(&self, path: &str) -> Result<Vec<serde_json::Value>> {
+        let api_url = format!(
+            "https://api.github.com/repos/{}/{}/contents/{}",
+            self.owner, self.repo, path
+        );
+
+        let response = self.client
+            .get(&api_url)
+            .header("User-Agent", "Ziiircom-Scanner")
+            .send()
+            .blocking()?;
+
+        if !response.status().is_success() {
+            return Ok(Vec::new());
+        }
+
+        Ok(response.json()?)
+    }
+}
+
+impl Connector for GithubConnector {
+    type FileIter = GithubFileIterator;
+
+    fn files(&self) -> Result<Self::FileIter> {
+        Ok(GithubFileIterator {
+            client: self.client.clone(),
+            owner: self.owner.clone(),
+            repo: self.repo.clone(),
+            stack: vec![String::new()],
+            current_files: Vec::new(),
+        })
     }
 
     fn has_package_json(&self) -> bool {

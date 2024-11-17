@@ -6,10 +6,32 @@ use std::path::PathBuf;
 
 use crate::scanner::Connector;
 
-#[derive(Clone)]
+use std::sync::Arc;
+
 pub struct ZipConnector {
-    archive: ZipArchive<File>,
+    archive: Arc<ZipArchive<File>>,
     has_package_json: bool,
+}
+
+pub struct ZipFileIterator {
+    archive: Arc<ZipArchive<File>>,
+    current_index: usize,
+    total_files: usize,
+}
+
+impl Iterator for ZipFileIterator {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.current_index < self.total_files {
+            if let Ok(file) = self.archive.by_index(self.current_index) {
+                self.current_index += 1;
+                return Some(file.name().to_string());
+            }
+            self.current_index += 1;
+        }
+        None
+    }
 }
 
 impl ZipConnector {
@@ -25,21 +47,21 @@ impl ZipConnector {
         });
 
         Ok(Self {
-            archive,
+            archive: Arc::new(archive),
             has_package_json,
         })
     }
 }
 
 impl Connector for ZipConnector {
-    fn list_files(&self) -> Result<Vec<String>> {
-        let mut files = Vec::new();
-        for i in 0..self.archive.len() {
-            if let Ok(file) = self.archive.by_index(i) {
-                files.push(file.name().to_string());
-            }
-        }
-        Ok(files)
+    type FileIter = ZipFileIterator;
+
+    fn files(&self) -> Result<Self::FileIter> {
+        Ok(ZipFileIterator {
+            archive: Arc::clone(&self.archive),
+            current_index: 0,
+            total_files: self.archive.len(),
+        })
     }
 
     fn has_package_json(&self) -> bool {

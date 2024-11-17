@@ -6,8 +6,6 @@ use clap::Parser;
 use colored::*;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
-use glob::glob_with;
-use glob::MatchOptions;
 
 use crate::scanner::{Scanner, VERSION};
 use crate::connectors::{ZipConnector, FolderConnector, GithubConnector};
@@ -141,13 +139,11 @@ fn main() -> Result<()> {
             );
         }
     } else {
-        // Default to scanning assets directory if no path provided
-        let assets_path = PathBuf::from("assets");
-        if assets_path.is_dir() {
-            analyze_folder(&assets_path)?;
-        } else {
-            println!("{}", "Error: assets directory not found".red().bold());
-        }
+        println!("\n{}", "Usage:".bright_blue().bold());
+        println!("  {} {}", "Scan a directory:".yellow(), "cargo run -- -p ./path/to/dir".bright_blue());
+        println!("  {} {}", "Scan a zip file:".yellow(), "cargo run -- -p ./path/to/file.zip".bright_blue());
+        println!("  {} {}", "Scan a GitHub repo:".yellow(), "cargo run -- -u https://github.com/owner/repo".bright_blue());
+        println!("\nFor more options, run: {}", "cargo run -- --help".bright_blue());
     }
 
     Ok(())

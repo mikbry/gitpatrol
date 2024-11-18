@@ -10,8 +10,9 @@ import { ArrowRight, FileSearch, GitBranch, Shield, Upload, Sun, Moon, Laptop } 
 type Theme = 'light' | 'dark' | 'system'
 
 export default function App() {
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [theme, setTheme] = useState<Theme>('system')
 
@@ -26,7 +27,7 @@ export default function App() {
     }
   }, [theme])
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  /* const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0])
     }
@@ -43,8 +44,34 @@ export default function App() {
         setFile(null)
       }, 3000)
     }
-  }
+  } */
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleScanStart = async () => {
+    if (!file) return;
+
+    try {
+      setIsScanning(true)
+      const text = await file.text();
+      const { WasmScanner } = await import('@/lib/wasm');
+      const scanner = new WasmScanner();
+      scanner.set_content(text);
+      const hasSuspiciousCode = await scanner.scan();
+
+      setResult(
+        hasSuspiciousCode ? '🚨 Suspicious patterns detected!' : '✅ No suspicious patterns found',
+      );
+    } catch (error) {
+      console.error('Scan error:', error);
+      setResult('❌ Error scanning file');
+    }
+    setIsScanning(false)
+  };
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-14 flex items-center justify-between bg-orange-500 text-white">
@@ -233,15 +260,17 @@ export default function App() {
                 </DialogTrigger>
                 <DialogContent className="bg-white">
                   <DialogHeader>
-                    <DialogTitle className="text-orange-500">Upload File for Scanning</DialogTitle>
+                    <DialogTitle className="text-orange-500">Choose file for Scanning</DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
+                    <div className="text-black">This a demo of GitPatrol, the scan is running on your machine, nothing is send to any server. It is a secure and sandboxed operation using WASM and Rust. If you think results are not ok, go to our Github page and add an issue. Thanks !</div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="file-upload" className="text-right text-gray-700">
                         File
                       </Label>
                       <Input id="file-upload" type="file" className="col-span-3 bg-gray-100 text-gray-900 border-orange-300 focus:border-orange-500 focus:ring-orange-500" onChange={handleFileChange} accept=".js,.zip" />
                     </div>
+                    <div className="text-black">{result}</div>
                   </div>
                   <Button onClick={handleScanStart} disabled={!file || isScanning} className="bg-orange-500 text-white hover:bg-orange-600">
                     {isScanning ? 'Scanning...' : 'Start Scan'}

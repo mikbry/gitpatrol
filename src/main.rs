@@ -22,7 +22,8 @@ struct Cli {
     url: Option<String>,
 }
 
-async fn analyze<T: Connector>(scanner: Scanner<T>, header: &str, target: &str) -> Result<bool> {
+async fn analyze<T: Connector>(connector: T, header: &str, target: &str) -> Result<bool> {
+    let scanner = Scanner::new(connector);
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
@@ -51,20 +52,17 @@ async fn analyze<T: Connector>(scanner: Scanner<T>, header: &str, target: &str) 
 
 async fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     let connector = ZipConnector::new(zip_path.clone())?;
-    let scanner = Scanner::new(connector);
-    analyze(scanner, "📦 Analyzing zip file:", &zip_path.display().to_string()).await
+    analyze(connector, "📦 Analyzing zip file:", &zip_path.display().to_string()).await
 }
 
 async fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
     let connector = FolderConnector::new(folder_path.clone())?;
-    let scanner = Scanner::new(connector);
-    analyze(scanner, "📁 Analyzing folder:", &folder_path.display().to_string()).await
+    analyze(connector, "📁 Analyzing folder:", &folder_path.display().to_string()).await
 }
 
 async fn analyze_github_repo(url: &str) -> Result<bool> {
     let connector = GithubConnector::new(url.to_string())?;
-    let scanner = Scanner::new(connector);
-    analyze(scanner, "🔍 Analyzing GitHub repository:", url).await
+    analyze(connector, "🔍 Analyzing GitHub repository:", url).await
 }
 
 #[tokio::main]

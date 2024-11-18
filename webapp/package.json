@@ -1,19 +1,4 @@
 {
-  "name": "ziiir",
-  "private": true,
-  "version": "0.1.0",
-  "workspaces": [
-    "webapp"
-  ],
-  "scripts": {
-    "dev": "npm run dev -w webapp",
-    "build": "npm run build -w webapp",
-    "preview": "npm run preview -w webapp",
-    "lint": "npm run lint -w webapp",
-    "test": "npm run test -w webapp"
-  }
-}
-{
   "name": "@ziiir/webapp",
   "private": true,
   "version": "0.1.0",

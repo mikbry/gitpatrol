@@ -9,6 +9,7 @@
     "dev": "npm run dev -w webapp",
     "build": "npm run build -w webapp",
     "build:wasm": "wasm-pack build crates/wasm --out-dir ../../webapp/src/lib/wasm --out-name index",
+    "build:all": "npm run build:wasm && npm run build",
     "preview": "npm run preview -w webapp",
     "lint": "npm run lint -w webapp",
     "test": "npm run test -w webapp"

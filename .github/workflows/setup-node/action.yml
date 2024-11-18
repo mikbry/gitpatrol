@@ -21,4 +21,5 @@ runs:
       run: npm ci
 
     - name: Install Wasm-pack
+      shell: bash
       run: npm install -g wasm-pack

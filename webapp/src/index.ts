@@ -1,8 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import React from 'react';
-import Page from './page';
-import './index.css';
+import Page from './Page';
+import './globals.css';
 
 const container = document.getElementById('root');
 

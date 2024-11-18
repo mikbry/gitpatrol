@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import React from 'react';
-import Page from './Page';
+import Page from './page';
 
 const container = document.getElementById('root');
 

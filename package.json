@@ -1,0 +1,40 @@
+{
+  "name": "gitpatrol-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "webapp"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w webapp",
+    "build": "npm run build -w webapp",
+    "build:wasm": "wasm-pack build crates/wasm --out-dir ../../webapp/src/lib/wasm --out-name index",
+    "preview": "npm run preview -w webapp",
+    "lint": "npm run lint -w webapp",
+    "test": "npm run test -w webapp"
+  },
+  "dependencies": {
+    "gitpatrol": "file:./webapp",
+    "gitpatrol-wasm": "file:./platforms/wasm"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.11.1",
+    "@types/node": "^22.7.4",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^2.1.1",
+    "@wasm-tool/wasm-pack-plugin": "^1.7.0",
+    "eslint": "^9.11.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^15.9.0",
+    "packito": "^0.5.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^8.8.0",
+    "vite": "^5.4.1",
+    "vite-plugin-dts": "^4.2.4",
+    "vite-plugin-wasm": "^3.3.0",
+    "vitest": "^2.1.1"
+  }
+}

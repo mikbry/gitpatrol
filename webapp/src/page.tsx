@@ -18,7 +18,7 @@ export default function Page() {
 
     try {
       const text = await file.text();
-      const { WasmScanner } = await import('gitpatrol-wasm');
+      const { WasmScanner } = await import('@/lib/wasm');
       const scanner = new WasmScanner();
       scanner.set_content(text);
       const hasSuspiciousCode = await scanner.scan();

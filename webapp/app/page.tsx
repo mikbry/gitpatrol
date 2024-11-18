@@ -18,10 +18,15 @@ export default function Home() {
 
     try {
       const text = await file.text()
-      // TODO: Call WASM scanner here
-      setResult('Scanning completed')
+      const { scanContent } = await import('@/lib/wasm')
+      const hasSuspiciousCode = await scanContent(text)
+      
+      setResult(hasSuspiciousCode 
+        ? '🚨 Suspicious patterns detected!' 
+        : '✅ No suspicious patterns found')
     } catch (error) {
-      setResult('Error scanning file')
+      console.error('Scan error:', error)
+      setResult('❌ Error scanning file')
     }
   }
 

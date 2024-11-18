@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-export default function Home() {
+export default function Page() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<string>('');
 

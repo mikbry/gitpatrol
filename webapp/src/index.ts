@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
-import Home from './page';
+import React from 'react';
+import Page from './Page';
 
 const container = document.getElementById('root');
 
@@ -11,7 +12,7 @@ if (!container) {
 const root = createRoot(container);
 
 root.render(
-  <StrictMode>
-    <Home />
-  </StrictMode>
+  React.createElement(StrictMode, null,
+    React.createElement(Page)
+  )
 );

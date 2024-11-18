@@ -9,6 +9,7 @@ pub struct GithubConnector {
     client: Client,
     owner: String,
     repo: String,
+    token: Option<String>,
 }
 
 pub struct GithubFileIterator {
@@ -31,10 +32,13 @@ impl GithubConnector {
             anyhow::bail!("Invalid GitHub URL format. Expected: https://github.com/owner/repo");
         }
 
+        let token = std::env::var("GITHUB_TOKEN").ok();
+        
         Ok(Self {
             client: Client::new(),
             owner: path_segments[0].to_string(),
             repo: path_segments[1].to_string(),
+            token,
         })
     }
 
@@ -44,9 +48,15 @@ impl GithubConnector {
             self.owner, self.repo, path
         );
 
-        let response = self.client
+        let mut request = self.client
             .get(&api_url)
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+
+        if let Some(token) = &self.token {
+            request = request.header("Authorization", format!("token {}", token));
+        }
+            
+        let response = request
             .send().await?;
 
         let status = response.status();
@@ -62,9 +72,9 @@ impl GithubConnector {
                 },
                 403 => {
                     if error_body.contains("rate limit") {
-                        anyhow::bail!("GitHub API rate limit exceeded. Please try again later.")
+                        anyhow::bail!("GitHub API rate limit exceeded. Please try again later. Consider setting a GITHUB_TOKEN environment variable.")
                     } else {
-                        anyhow::bail!("Access denied - Repository may be private")
+                        anyhow::bail!("Access denied - Repository may be private. If you have access, set GITHUB_TOKEN environment variable.")
                     }
                 },
                 _ => anyhow::bail!("GitHub API error ({}): {}", status, error_body)

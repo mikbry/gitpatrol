@@ -1,4 +1,5 @@
 use anyhow::Result;
+use crate::connector::Connector;
 
 pub const VERSION: &str = "1.0.0";
 pub const MAX_LINE_LENGTH: usize = 500;
@@ -16,14 +17,6 @@ pub const SAFE_PATTERNS: [&str; 3] = [
     "/*! ",           // Common minified library header
     "(function(f)",   // Common module pattern
 ];
-
-#[async_trait::async_trait]
-pub trait Connector {
-    type FileIter: Iterator<Item = String>;
-    
-    async fn iter(&self) -> Result<Self::FileIter>;
-    async fn get_file_content(&self, path: &str) -> Result<String>;
-}
 
 pub struct Scanner<T: Connector> {
     connector: T,

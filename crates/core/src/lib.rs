@@ -1,3 +1,5 @@
 mod scanner;
+mod connector;
 
-pub use scanner::{Scanner, Connector, VERSION};
+pub use scanner::{Scanner, VERSION};
+pub use connector::Connector;

@@ -1,8 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import React from 'react';
-import Page from './Page';
-import '@/styles/globals.css';
+import App from './App';
+import '@/styles/global.css';
 
 const container = document.getElementById('root');
 
@@ -14,6 +14,6 @@ const root = createRoot(container);
 
 root.render(
   React.createElement(StrictMode, null,
-    React.createElement(Page)
+    React.createElement(App)
   )
 );

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-export default function Page() {
+export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<string>('');
 
@@ -36,7 +36,7 @@ export default function Page() {
     <main className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Repository Scanner</CardTitle>
+          <CardTitle>🚨 GitPatrol Scanner 🚨</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">

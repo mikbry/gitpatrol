@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
 
     println!(
         "\n{}",
-        "🔍 Ziiircom : Git repository malware scanner"
+        "🔍 GitPatrol : Git repository malware scanner"
             .bright_cyan()
             .bold()
     );

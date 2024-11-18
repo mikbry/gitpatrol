@@ -46,7 +46,7 @@ impl GithubConnector {
 
         let response = self.client
             .get(&api_url)
-            .header("User-Agent", "Ziiircom-Scanner")
+            // .header("User-Agent", "Ziiircom-Scanner")
             .send().await?;
 
         let status = response.status();

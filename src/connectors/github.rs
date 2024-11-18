@@ -46,7 +46,7 @@ impl GithubConnector {
 
         let response = self.client
             .get(&api_url)
-            // .header("User-Agent", "Ziiircom-Scanner")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
             .send().await?;
 
         let status = response.status();
@@ -119,7 +119,7 @@ impl Connector for GithubConnector {
         
         let response = self.client
             .get(&api_url)
-            .header("User-Agent", "Ziiircom-Scanner")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
             .header("Accept", "application/vnd.github.v3+json")
             .send()
             .await?;

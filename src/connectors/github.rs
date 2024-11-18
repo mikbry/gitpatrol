@@ -127,12 +127,16 @@ impl Connector for GithubConnector {
             self.owner, self.repo, path
         );
         
-        let response = self.client
+        let mut request = self.client
             .get(&api_url)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-            .header("Accept", "application/vnd.github.v3+json")
-            .send()
-            .await?;
+            .header("Accept", "application/vnd.github.v3+json");
+
+        if let Some(token) = &self.token {
+            request = request.header("Authorization", format!("token {}", token));
+        }
+
+        let response = request.send().await?;
 
         if !response.status().is_success() {
             anyhow::bail!("Failed to fetch file contents: {}", response.status());

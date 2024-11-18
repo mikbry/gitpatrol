@@ -9,6 +9,7 @@ import autoprefixer from 'autoprefixer'
 /** @type {import('vite').UserConfig} */
 export default defineConfig({
   plugins: [react(), wasm(), topLevelAwait()],
+  base: '/gitpatrol/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

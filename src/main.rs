@@ -21,17 +21,14 @@ struct Cli {
     url: Option<String>,
 }
 
-async fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
+async fn analyze<T: Connector>(scanner: Scanner<T>, header: &str, target: &str) -> Result<bool> {
     println!("\n{}", "━".repeat(80).bright_blue());
     println!(
         "{} {}",
-        "📦 Analyzing zip file:".bright_blue().bold(),
-        zip_path.display().to_string().yellow()
+        header.bright_blue().bold(),
+        target.yellow()
     );
     println!("{}", "━".repeat(80).bright_blue());
-
-    let connector = ZipConnector::new(zip_path.clone())?;
-    let scanner = Scanner::new(connector);
 
     let found_suspicious = scanner.scan().await?;
 
@@ -49,76 +46,24 @@ async fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
     println!("{}", "━".repeat(80).bright_blue());
 
     Ok(found_suspicious)
+}
+
+async fn analyze_zip_file(zip_path: &PathBuf) -> Result<bool> {
+    let connector = ZipConnector::new(zip_path.clone())?;
+    let scanner = Scanner::new(connector);
+    analyze(scanner, "📦 Analyzing zip file:", &zip_path.display().to_string()).await
 }
 
 async fn analyze_folder(folder_path: &PathBuf) -> Result<bool> {
-    println!("\n{}", "━".repeat(80).bright_blue());
-    println!(
-        "{} {}",
-        "📁 Analyzing folder:".bright_blue().bold(),
-        folder_path.display().to_string().yellow()
-    );
-    println!("{}", "━".repeat(80).bright_blue());
-
     let connector = FolderConnector::new(folder_path.clone())?;
     let scanner = Scanner::new(connector);
-
-    let found_suspicious = scanner.scan().await?;
-
-    // Show final status
-    println!("\n{}", "┄".repeat(80).bright_blue());
-    println!(
-        "  {} {}",
-        "📊 Analysis Result:".bright_blue().bold(),
-        if found_suspicious {
-            "🔴 Suspicious patterns detected".red().bold()
-        } else {
-            "🟢 No suspicious patterns found".green().bold()
-        }
-    );
-    println!("{}", "━".repeat(80).bright_blue());
-
-    Ok(found_suspicious)
+    analyze(scanner, "📁 Analyzing folder:", &folder_path.display().to_string()).await
 }
 
 async fn analyze_github_repo(url: &str) -> Result<bool> {
-    println!("\n{}", "━".repeat(80).bright_blue());
-    println!(
-        "{} {}",
-        "🔍 Analyzing GitHub repository:".bright_blue().bold(),
-        url.yellow()
-    );
-    println!("{}", "━".repeat(80).bright_blue());
-
     let connector = GithubConnector::new(url.to_string())?;
     let scanner = Scanner::new(connector);
-
-    match scanner.scan().await {
-        Ok(found_suspicious) => {
-            println!("\n{}", "┄".repeat(80).bright_blue());
-            println!(
-                "  {} {}",
-                "📊 Analysis Result:".bright_blue().bold(),
-                if found_suspicious {
-                    "🔴 Suspicious patterns detected".red().bold()
-                } else {
-                    "🟢 No suspicious patterns found".green().bold()
-                }
-            );
-            println!("{}", "━".repeat(80).bright_blue());
-            Ok(found_suspicious)
-        },
-        Err(e) => {
-            println!("\n{}", "┄".repeat(80).bright_blue());
-            println!(
-                "  {} {}",
-                "📊 Analysis Result:".bright_blue().bold(),
-                format!("🔴 Error scanning repository: {}", e).red().bold()
-            );
-            println!("{}", "━".repeat(80).bright_blue());
-            Err(e)
-        }
-    }
+    analyze(scanner, "🔍 Analyzing GitHub repository:", url).await
 }
 
 #[tokio::main]

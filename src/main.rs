@@ -4,6 +4,7 @@ mod scanner;
 use anyhow::Result;
 use clap::Parser;
 use colored::*;
+use connectors::Connector;
 use std::path::PathBuf;
 
 use crate::connectors::{FolderConnector, GithubConnector, ZipConnector};

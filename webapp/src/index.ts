@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { StrictMode } from 'react';
-import React from 'react';
+import React, { StrictMode } from 'react';
 import App from './App';
 import '@/styles/global.css';
 
@@ -12,8 +11,4 @@ if (!container) {
 
 const root = createRoot(container);
 
-root.render(
-  React.createElement(StrictMode, null,
-    React.createElement(App)
-  )
-);
+root.render(React.createElement(StrictMode, null, React.createElement(App)));

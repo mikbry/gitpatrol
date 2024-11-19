@@ -18,7 +18,7 @@ runs:
     - name: Install dependencies
       shell: bash
       if: steps.cache_dependencies.outputs.cache-hit != 'true'
-      run: npm ci
+      run: npm ci --legacy-peer-deps
 
     - name: Install Wasm-pack
       shell: bash

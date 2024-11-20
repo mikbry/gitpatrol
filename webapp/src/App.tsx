@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileSearch, GitBranch, Shield, Upload, Sun, Moon, Laptop, Mail } from 'lucide-react';
+import { FileSearch, GitBranch, ShieldPlus, Upload, Sun, Moon, Laptop, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -71,7 +71,7 @@ export default function App() {
     <div className="flex min-h-screen flex-col">
       <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between bg-orange-600/80 px-4 text-white backdrop-blur-md lg:px-6">
         <a className="flex items-center justify-center" href="/">
-          <Shield className="h-6 w-6 text-white" aria-hidden="true" />
+          <ShieldPlus className="h-6 w-6 text-white" aria-hidden="true" />
           <span className="ml-2 text-2xl font-bold">GitPatrol</span>
         </a>
         <nav className="flex items-center gap-4 sm:gap-6">
@@ -143,7 +143,7 @@ export default function App() {
                   className="bg-white text-orange-500 hover:bg-orange-100"
                   onClick={() => setIsDialogOpen(true)}
                 >
-                  <Shield className="ml-2 h-4 w-4" aria-hidden="true" />
+                  <ShieldPlus className="ml-2 h-4 w-4" aria-hidden="true" />
                   Scan now
                 </Button>
                 {/* <Button
@@ -269,7 +269,7 @@ export default function App() {
                 className="bg-white text-orange-500 hover:bg-orange-100"
                 onClick={() => setIsDialogOpen(true)}
               >
-                <Shield className="ml-2 h-4 w-4" aria-hidden="true" />
+                <ShieldPlus className="ml-2 h-4 w-4" aria-hidden="true" />
                 Scan Now
               </Button>
             </div>
